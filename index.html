@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>J.A.R.V.I.S</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#0a0a0a;--bg2:#111;--bg3:#1a1a1a;--bg4:#222;
+  --green:#00e676;--green2:#00c853;--red:#ff1744;
+  --white:#f5f5f5;--grey:#888;
+  --border:#2a2a2a;--border2:#333;
+  --text:#f0f0f0;--text2:#aaa;--text3:#666;
+  --accent:rgba(0,230,118,0.1);
+}
+*{-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;height:100vh;overflow:hidden;font-size:15px;}
+#bgl{position:fixed;inset:0;z-index:0;background-size:cover;background-position:center;opacity:0;transition:opacity 0.5s;pointer-events:none;}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;opacity:0;pointer-events:none;transition:opacity 0.3s;}
+.overlay.on{opacity:1;pointer-events:all;}
+
+/* MENU */
+.menu{position:fixed;top:0;left:0;width:280px;height:100vh;background:var(--bg2);border-right:1px solid var(--border);z-index:200;transform:translateX(-100%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);display:flex;flex-direction:column;overflow:hidden;}
+.menu.on{transform:translateX(0);}
+.menu-hdr{padding:20px 16px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.menu-logo{font-size:14px;font-weight:600;color:var(--green);font-family:'JetBrains Mono',monospace;letter-spacing:0.05em;}
+.menu-x{width:32px;height:32px;border-radius:8px;border:none;background:var(--bg3);color:var(--text2);cursor:pointer;font-size:16px;}
+.msec{padding:12px 8px 4px;font-size:10px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;font-weight:500;}
+.mi{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;cursor:pointer;transition:background 0.2s;margin:1px 4px;color:var(--text2);font-size:14px;}
+.mi:hover,.mi.act{background:var(--bg3);color:var(--text);}
+.mi.act{background:var(--accent);color:var(--green);}
+.mic{font-size:17px;width:24px;text-align:center;}
+.mft{margin-top:auto;padding:12px 8px;border-top:1px solid var(--border);}
+.srow{display:flex;align-items:center;gap:8px;padding:5px 12px;font-size:12px;color:var(--text3);}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--border2);flex-shrink:0;transition:all 0.3s;}
+.sdot.on{background:var(--green);box-shadow:0 0 6px var(--green);}
+.sdot.or{background:#ff9100;box-shadow:0 0 6px #ff9100;}
+
+/* HEADER */
+.hdr{position:fixed;top:0;left:0;right:0;height:56px;background:rgba(10,10,10,0.97);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:50;backdrop-filter:blur(8px);}
+.hbtn{width:36px;height:36px;border-radius:10px;border:none;background:var(--bg3);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all 0.2s;}
+.hbtn:hover{background:var(--bg4);color:var(--text);}
+.htitle{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:500;color:var(--green);letter-spacing:0.05em;}
+.hright{display:flex;align-items:center;gap:8px;}
+.mpill{padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--bg3);font-size:11px;color:var(--text2);cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all 0.2s;}
+.mpill:hover,.mpill.act{border-color:var(--green);color:var(--green);background:var(--accent);}
+
+/* MAIN */
+.main{position:fixed;top:56px;bottom:0;left:0;right:0;display:flex;flex-direction:column;z-index:1;}
+.chatbox{flex:1;overflow-y:auto;padding:12px 16px 8px;display:flex;flex-direction:column;gap:2px;}
+.chatbox::-webkit-scrollbar{width:0;}
+.mg{display:flex;flex-direction:column;gap:2px;margin-bottom:10px;animation:fi 0.2s ease;}
+@keyframes fi{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+.mg.u{align-items:flex-end;}.mg.j{align-items:flex-start;}
+.bub{max-width:84%;padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.65;word-break:break-word;}
+.mg.u .bub{background:var(--bg3);border:1px solid var(--border2);border-radius:18px 18px 4px 18px;}
+.mg.j .bub{background:var(--bg2);border:1px solid var(--border);border-radius:18px 18px 18px 4px;}
+.bub strong{color:var(--green);font-weight:500;}
+.bub code{background:var(--bg3);padding:1px 5px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#aaa;}
+.sysmsg{text-align:center;font-size:12px;color:var(--text3);padding:6px;margin:2px 0;}
+.typbub{display:none;align-self:flex-start;background:var(--bg2);border:1px solid var(--border);padding:12px 16px;border-radius:18px 18px 18px 4px;margin-bottom:10px;}
+.typbub.on{display:flex;align-items:center;gap:4px;}
+.td{width:6px;height:6px;border-radius:50%;background:var(--border2);animation:td 1.2s ease-in-out infinite;}
+.td:nth-child(2){animation-delay:0.2s;}.td:nth-child(3){animation-delay:0.4s;}
+@keyframes td{0%,80%,100%{opacity:0.3;transform:scale(0.8);}40%{opacity:1;transform:scale(1.1);}}
+
+/* INPUT */
+.ia{padding:10px 16px 12px;background:rgba(10,10,10,0.97);border-top:1px solid var(--border);flex-shrink:0;backdrop-filter:blur(8px);}
+.qbtns{display:flex;gap:6px;margin-bottom:8px;overflow-x:auto;padding-bottom:2px;}
+.qbtns::-webkit-scrollbar{display:none;}
+.qbtn{padding:5px 12px;border-radius:16px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-size:12px;cursor:pointer;white-space:nowrap;transition:all 0.2s;flex-shrink:0;}
+.qbtn:hover{border-color:var(--green);color:var(--green);}
+.irow{display:flex;align-items:flex-end;gap:8px;background:var(--bg2);border:1px solid var(--border2);border-radius:24px;padding:6px 6px 6px 16px;transition:border-color 0.2s;}
+.irow:focus-within{border-color:var(--green);}
+#ui{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;resize:none;min-height:24px;max-height:120px;line-height:1.5;padding:3px 0;}
+#ui::placeholder{color:var(--text3);}
+.ibtns{display:flex;gap:4px;align-items:flex-end;}
+.ib2{width:36px;height:36px;border-radius:50%;border:none;background:transparent;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all 0.2s;}
+.ib2:hover{background:var(--bg3);color:var(--text);}
+.sndbtn{background:var(--green);color:#000;border-radius:50%;width:36px;height:36px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all 0.2s;}
+.sndbtn:hover{background:var(--green2);}
+.sndbtn:disabled{background:var(--bg4);color:var(--text3);cursor:not-allowed;}
+.iprev{display:none;margin-bottom:8px;border-radius:12px;overflow:hidden;border:1px solid var(--border);position:relative;}
+.iprev.on{display:block;}
+.iprev img{width:100%;max-height:100px;object-fit:cover;}
+.iprevx{position:absolute;top:5px;right:5px;background:rgba(0,0,0,0.75);color:#fff;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:11px;}
+#iup{display:none;}
+
+/* PANELS */
+.panel{position:fixed;inset:0;background:var(--bg);z-index:150;transform:translateY(100%);transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);display:flex;flex-direction:column;}
+.panel.on{transform:translateY(0);}
+.phdr{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.ptitle{font-size:15px;font-weight:600;}
+.pclose{width:32px;height:32px;border-radius:8px;border:none;background:var(--bg3);color:var(--text2);cursor:pointer;font-size:18px;}
+.pbody{flex:1;overflow-y:auto;padding:16px;}
+.pbody::-webkit-scrollbar{width:0;}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;}
+.ctitle{font-size:11px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:12px;font-weight:500;}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.citem{background:var(--bg3);border-radius:10px;padding:12px;}
+.clbl{font-size:11px;color:var(--text3);margin-bottom:4px;}
+.cval{font-size:16px;font-weight:600;color:var(--green);font-family:'JetBrains Mono',monospace;}
+.csub{font-size:11px;color:var(--text2);margin-top:2px;}
+.pbar{height:4px;background:var(--bg4);border-radius:2px;overflow:hidden;margin-top:8px;}
+.pfill{height:100%;border-radius:2px;background:var(--green);transition:width 0.8s ease;}
+.pfill.o{background:#ff9100;}
+
+/* FORM */
+.fi{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;padding:10px 12px;outline:none;transition:border-color 0.2s;margin-bottom:8px;}
+.fi:focus{border-color:var(--green);}
+.fi::placeholder{color:var(--text3);}
+.fta{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;padding:10px 12px;outline:none;resize:none;line-height:1.5;margin-bottom:8px;}
+.fta:focus{border-color:var(--green);}
+.fta::placeholder{color:var(--text3);}
+.fsel{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;padding:10px 12px;outline:none;margin-bottom:8px;}
+.btn{width:100%;padding:12px;border-radius:12px;border:none;font-family:'Inter',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.2s;margin-bottom:8px;}
+.btn.p{background:var(--green);color:#000;}
+.btn.p:hover{background:var(--green2);}
+.btn.s{background:var(--bg3);color:var(--text);border:1px solid var(--border2);}
+.btn.s:hover{border-color:var(--green);color:var(--green);}
+.btn.d{background:rgba(255,23,68,0.1);color:var(--red);border:1px solid rgba(255,23,68,0.2);}
+.brow{display:flex;gap:8px;}
+.brow .btn{flex:1;}
+
+/* PLANET ROWS */
+.prow{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);}
+.prow:last-child{border-bottom:none;}
+.pname{font-size:13px;color:var(--text);display:flex;align-items:center;gap:7px;}
+.ppos{font-size:12px;color:var(--text2);font-family:'JetBrains Mono',monospace;}
+.dig{font-size:10px;padding:2px 6px;border-radius:4px;}
+.dig.ex{background:rgba(0,230,118,0.1);color:var(--green);}
+.dig.do{background:rgba(100,180,255,0.1);color:#64b4ff;}
+.dig.dt{background:rgba(255,23,68,0.1);color:var(--red);}
+.dig.fa{background:rgba(255,145,0,0.1);color:#ff9100;}
+
+/* DASHA */
+.db{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;}
+.dlbl{font-size:10px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;}
+.dpl{font-size:22px;font-weight:700;color:var(--green);font-family:'JetBrains Mono',monospace;}
+.db.ant .dpl{color:#ff9100;}
+.ddt{font-size:12px;color:var(--text2);margin-top:4px;}
+.dpct{font-size:11px;color:var(--text3);margin-top:5px;}
+
+/* MODES */
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.mcard{padding:12px;border-radius:12px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer;transition:all 0.2s;}
+.mcard:hover{border-color:var(--green);}
+.mcard.on{border-color:var(--green);background:var(--accent);}
+.mico{font-size:20px;margin-bottom:5px;}
+.mnm{font-size:13px;font-weight:500;}
+.mds{font-size:11px;color:var(--text3);margin-top:2px;}
+
+/* HORARY */
+.vd{font-size:15px;font-weight:600;padding:10px 14px;border-radius:10px;margin-bottom:12px;text-align:center;}
+.vd.y{background:rgba(0,230,118,0.1);color:var(--green);border:1px solid rgba(0,230,118,0.3);}
+.vd.n{background:rgba(255,23,68,0.1);color:var(--red);border:1px solid rgba(255,23,68,0.3);}
+.vd.m{background:rgba(255,145,0,0.1);color:#ff9100;border:1px solid rgba(255,145,0,0.3);}
+.fr{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.fr:last-child{border-bottom:none;}
+.fl2{color:var(--text3);}
+.fv{color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;}
+.fv.w{color:#ff9100;}.fv.g{color:var(--green);}.fv.b{color:var(--red);}
+
+/* FITNESS */
+.li{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);}
+.li:last-child{border-bottom:none;}
+.ldate{font-size:12px;color:var(--text3);}
+.lw{font-size:14px;font-weight:500;font-family:'JetBrains Mono',monospace;}
+.lbf{font-size:12px;color:var(--text2);}
+.exrow{display:flex;gap:5px;margin-bottom:6px;}
+.exrow input{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;padding:8px;outline:none;}
+.exrow input:focus{border-color:var(--green);}
+.exrow input::placeholder{color:var(--text3);}
+.ex-n{flex:2;min-width:0;}
+.ex-s{width:48px;text-align:center;flex-shrink:0;}
+.woc{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;}
+.wod{font-size:11px;color:var(--text3);margin-bottom:4px;}
+.won{font-size:13px;font-weight:500;margin-bottom:5px;}
+.woe{font-size:12px;color:var(--text2);line-height:1.6;}
+.prbadge{font-size:10px;padding:2px 6px;border-radius:4px;background:var(--accent);color:var(--green);border:1px solid rgba(0,230,118,0.2);margin:1px;}
+canvas{border-radius:10px;width:100%;display:block;}
+
+/* COUNCIL */
+.cov{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;flex-direction:column;transform:translateY(100%);transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);}
+.cov.on{transform:translateY(0);}
+.chdr{padding:18px 16px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.ctit{font-size:16px;font-weight:600;}
+.cbdy{flex:1;overflow-y:auto;padding:16px;}
+.cbdy::-webkit-scrollbar{width:0;}
+.mc2{background:var(--bg2);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden;}
+.mh2{padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);}
+.mb2{padding:12px 14px;font-size:13px;line-height:1.7;color:var(--text2);}
+.mn2{font-size:13px;font-weight:600;}
+.mt2{font-size:11px;color:var(--text3);margin-top:1px;}
+.scard{background:var(--bg3);border:1px solid var(--border2);border-radius:14px;padding:14px;margin-top:4px;}
+.slbl{font-size:10px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;}
+.stxt{font-size:14px;line-height:1.7;}
+.cia{padding:14px 16px;border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:8px;}
+.cia textarea{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:16px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;padding:10px 14px;outline:none;resize:none;height:44px;}
+.cia textarea:focus{border-color:var(--green);}
+.cbtn2{padding:0 18px;background:var(--green);color:#000;border:none;border-radius:16px;font-size:14px;font-weight:600;cursor:pointer;}
+
+/* SETUP */
+.sov{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:500;display:flex;align-items:flex-end;justify-content:center;}
+.ssheet{background:var(--bg2);border-radius:24px 24px 0 0;padding:24px;width:100%;max-width:500px;max-height:92vh;overflow-y:auto;}
+.ssheet::-webkit-scrollbar{width:0;}
+.stit{font-size:18px;font-weight:600;margin-bottom:4px;}
+.ssub{font-size:13px;color:var(--text3);margin-bottom:20px;}
+.ssec{margin-bottom:16px;}
+.slb{font-size:12px;color:var(--text3);margin-bottom:6px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;}
+.sopt{font-size:11px;color:var(--text3);margin-top:4px;line-height:1.5;}
+.sopt a{color:var(--green);text-decoration:none;}
+
+/* KB */
+.kbi{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);}
+.kbi:last-child{border-bottom:none;}
+.kbcat{font-size:10px;color:var(--green);font-weight:500;margin-bottom:3px;text-transform:uppercase;}
+.kbprev{font-size:13px;color:var(--text2);}
+.kbdel{color:var(--text3);font-size:16px;cursor:pointer;padding:4px;border:none;background:none;}
+
+/* AI ANSWER BOX */
+.abox{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;font-size:13px;line-height:1.75;color:var(--text2);margin-top:10px;}
+.abox strong{color:var(--green);}
+</style>
+</head>
+<body>
+<div id="bgl"></div>
+<div class="overlay" id="ov" onclick="closeAll()"></div>
+
+<!-- SETUP -->
+<div class="sov" id="setup" style="display:none">
+<div class="ssheet">
+  <div class="stit">Initialize J.A.R.V.I.S</div>
+  <div class="ssub">Enter your keys. Only Groq is required.</div>
+  <div class="ssec"><div class="slb">Groq API Key *</div><input class="fi" type="password" id="sg" placeholder="gsk_xxxx"/><div class="sopt">Free at <a href="https://console.groq.com" target="_blank">console.groq.com</a></div></div>
+  <div class="ssec"><div class="slb">OpenRouter (uncensored fallback)</div><input class="fi" type="password" id="so" placeholder="sk-or-xxxx"/><select class="fsel" id="som"><option value="gryphe/mythomax-l2-13b">mythomax-l2-13b</option><option value="sao10k/fimbulvetr-11b-v2">fimbulvetr-11b-v2</option><option value="pygmalionai/mythalion-13b">mythalion-13b</option></select><div class="sopt">$5 deposit at <a href="https://openrouter.ai" target="_blank">openrouter.ai</a></div></div>
+  <div class="ssec"><div class="slb">Tavily Search (real-time web)</div><input class="fi" type="text" id="stv" placeholder="tvly-xxxx"/><div class="sopt">Free at <a href="https://tavily.com" target="_blank">tavily.com</a></div></div>
+  <div class="ssec"><div class="slb">Birth Data (for Astrology)</div><input class="fi" type="text" id="sdb" placeholder="DOB: YYYY-MM-DD"/><input class="fi" type="text" id="stb2" placeholder="TOB: HH:MM (24h)"/><input class="fi" type="text" id="slat" placeholder="Latitude (GPS auto-fill)"/><input class="fi" type="text" id="slng" placeholder="Longitude (GPS auto-fill)"/></div>
+  <button class="btn p" onclick="saveSetup()" style="margin-top:4px">Initialize</button>
+  <div style="height:8px"></div>
+</div>
+</div>
+
+<!-- MENU -->
+<div class="menu" id="menu">
+  <div class="menu-hdr"><div class="menu-logo">J.A.R.V.I.S</div><button class="menu-x" onclick="closeMenu()">✕</button></div>
+  <div style="flex:1;overflow-y:auto;padding:8px 0">
+    <div class="msec">Chat</div>
+    <div class="mi act" onclick="closeMenu()"><span class="mic">💬</span>Main Chat</div>
+    <div class="mi" onclick="openPanel('profile')"><span class="mic">👤</span>Profile</div>
+    <div class="mi" onclick="openPanel('kb')"><span class="mic">📚</span>Knowledge Base</div>
+    <div class="msec">Features</div>
+    <div class="mi" onclick="openPanel('astro')"><span class="mic">🔮</span>Astro Tracker</div>
+    <div class="mi" onclick="openPanel('horary')"><span class="mic">⏱</span>Horary</div>
+    <div class="mi" onclick="openPanel('fitness')"><span class="mic">💪</span>Fitness Tracker</div>
+    <div class="mi" onclick="openCouncil()"><span class="mic">⚡</span>The Council</div>
+    <div class="mi" onclick="openPanel('music')"><span class="mic">🎵</span>Music</div>
+    <div class="msec">System</div>
+    <div class="mi" onclick="openPanel('modes')"><span class="mic">🎛</span>Modes</div>
+    <div class="mi" onclick="openPanel('settings')"><span class="mic">⚙</span>Settings</div>
+  </div>
+  <div class="mft">
+    <div class="srow"><div class="sdot" id="dg"></div><span id="sg2">Groq offline</span></div>
+    <div class="srow"><div class="sdot" id="dor"></div><span id="sor">OR offline</span></div>
+    <div class="srow"><div class="sdot" id="dtv"></div><span id="stv2">Search offline</span></div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="hbtn" onclick="openMenu()">☰</button>
+    <div class="htitle">J.A.R.V.I.S</div>
+  </div>
+  <div class="hright">
+    <div class="mpill act" id="mpill" onclick="openPanel('modes')">STANDARD</div>
+    <button class="hbtn" onclick="openCouncil()">⚡</button>
+  </div>
+</header>
+
+<!-- MAIN CHAT -->
+<div class="main">
+  <div class="chatbox" id="cb">
+    <div class="typbub" id="typ"><div class="td"></div><div class="td"></div><div class="td"></div></div>
+  </div>
+  <div class="ia">
+    <div class="qbtns">
+      <div class="qbtn" onclick="qk('analyze my current dasha and what it means')">☊ Dasha</div>
+      <div class="qbtn" onclick="qk('what are the current planetary transits affecting me')">🔮 Transits</div>
+      <div class="qbtn" onclick="qk('analyze my fitness progress and give advice')">💪 Fitness</div>
+      <div class="qbtn" onclick="openPanel('music')">🎵 Music</div>
+      <div class="qbtn" onclick="openPanel('horary')">⏱ Horary</div>
+    </div>
+    <div class="iprev" id="iprev"><img id="ipi" src="" alt=""/><button class="iprevx" onclick="clearImg()">✕</button></div>
+    <div class="irow">
+      <textarea id="ui" placeholder="Message Jarvis..." rows="1" onkeydown="hk(event)" oninput="ar(this)"></textarea>
+      <div class="ibtns">
+        <label class="ib2" for="iup">📎</label>
+        <input type="file" id="iup" accept="image/*" onchange="handleImg(event)"/>
+        <button class="sndbtn" id="sb" onclick="sendMsg()">↑</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ASTRO PANEL -->
+<div class="panel" id="panel-astro">
+  <div class="phdr"><div class="ptitle">🔮 Astro Tracker</div><button class="pclose" onclick="closePanel('astro')">✕</button></div>
+  <div class="pbody">
+    <div id="a-dasha"></div>
+    <div id="a-transits" style="margin-top:4px"></div>
+    <div id="a-natal" style="margin-top:4px"></div>
+    <div class="card" style="margin-top:4px">
+      <div class="ctitle">Ask Jarvis</div>
+      <textarea class="fta" id="aq" rows="2" placeholder="What does my Rahu dasha mean for relationships?"></textarea>
+      <button class="btn p" onclick="astroAsk()">Ask</button>
+      <div id="a-ans" style="display:none"></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Synastry</div>
+      <input class="fi" id="sa-n" placeholder="Person A name"/>
+      <input class="fi" id="sa-d" placeholder="A DOB: YYYY-MM-DD"/>
+      <input class="fi" id="sb-n" placeholder="Person B name"/>
+      <input class="fi" id="sb-d" placeholder="B DOB: YYYY-MM-DD"/>
+      <button class="btn s" onclick="calcSyn()">Calculate</button>
+      <div id="syn-r"></div>
+    </div>
+  </div>
+</div>
+
+<!-- HORARY PANEL -->
+<div class="panel" id="panel-horary">
+  <div class="phdr"><div class="ptitle">⏱ Horary</div><button class="pclose" onclick="closePanel('horary')">✕</button></div>
+  <div class="pbody">
+    <div class="card"><div class="ctitle">Chart Moment</div><div id="h-ts" style="font-size:13px;color:var(--text2);font-family:'JetBrains Mono',monospace"></div><div id="h-loc" style="font-size:12px;color:var(--text3);margin-top:4px"></div></div>
+    <textarea class="fta" id="hq" rows="3" placeholder="Ask your question sincerely..."></textarea>
+    <select class="fsel" id="hhs"><option value="regio">Regiomontanus (Traditional)</option><option value="placidus">Placidus</option><option value="whole">Whole Sign</option></select>
+    <div class="brow"><button class="btn s" onclick="castHorary()">Cast Chart</button><button class="btn p" onclick="interpHorary()">Interpret</button></div>
+    <div id="h-pl"></div>
+    <div id="h-fc" style="margin-top:8px"></div>
+    <div id="h-res" style="margin-top:10px"></div>
+  </div>
+</div>
+
+<!-- FITNESS PANEL -->
+<div class="panel" id="panel-fitness">
+  <div class="phdr"><div class="ptitle">💪 Fitness Tracker</div><button class="pclose" onclick="closePanel('fitness')">✕</button></div>
+  <div class="pbody">
+    <div id="f-tgt" style="margin-bottom:12px"></div>
+    <canvas id="wch" height="120" style="margin-bottom:8px"></canvas>
+    <canvas id="bch" height="120" style="margin-bottom:16px"></canvas>
+    <div class="card">
+      <div class="ctitle">Log Metrics</div>
+      <div class="brow"><input class="fi" style="margin:0" type="number" id="mw" placeholder="Weight kg" step="0.1"/><input class="fi" style="margin:0" type="number" id="mbf" placeholder="BF%" step="0.1"/></div>
+      <input class="fi" style="margin-top:8px" id="mn2" placeholder="Notes"/>
+      <button class="btn p" onclick="logMetric()">Log</button>
+    </div>
+    <div class="card">
+      <div class="ctitle">Targets</div>
+      <div class="brow"><input class="fi" style="margin:0" type="number" id="tw" placeholder="Target weight"/><input class="fi" style="margin:0" type="number" id="tb" placeholder="Target BF%"/></div>
+      <button class="btn s" style="margin-top:8px" onclick="saveTargets()">Save Targets</button>
+    </div>
+    <div class="card">
+      <div class="ctitle">Log Workout</div>
+      <input class="fi" id="wn" placeholder="Session name"/>
+      <div id="exc"></div>
+      <div class="brow" style="margin-top:4px"><button class="btn s" onclick="addExRow()">+ Exercise</button><button class="btn p" onclick="logWorkout()">Save</button></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Ask Jarvis</div>
+      <textarea class="fta" id="fq" rows="2" placeholder="Analyze my progress..."></textarea>
+      <button class="btn p" onclick="fitAsk()">Ask</button>
+      <div id="f-ans" style="display:none"></div>
+    </div>
+    <div id="f-hist"></div>
+    <div id="f-wo" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<!-- PROFILE PANEL -->
+<div class="panel" id="panel-profile">
+  <div class="phdr"><div class="ptitle">👤 Profile</div><button class="pclose" onclick="closePanel('profile')">✕</button></div>
+  <div class="pbody">
+    <div class="card">
+      <div class="ctitle">About You</div>
+      <textarea class="fta" id="pf" rows="5" placeholder="Your name, age, interests, goals..."></textarea>
+      <button class="btn p" onclick="saveProfile()">Save</button>
+    </div>
+    <div class="card">
+      <div class="ctitle">Background Image</div>
+      <input class="fi" id="bgurl" placeholder="Paste image URL..." oninput="applyBGUrl()"/>
+      <label class="btn s" for="bgf" style="display:block;text-align:center;cursor:pointer">Upload Image</label>
+      <input type="file" id="bgf" accept="image/*" onchange="applyBGFile(event)" style="display:none"/>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+        <span style="font-size:13px;color:var(--text3)">Opacity</span>
+        <input type="range" id="bgo" min="0.05" max="0.7" step="0.05" value="0.2" oninput="updateBGO()" style="flex:1;accent-color:var(--green)"/>
+        <button class="btn s" onclick="clearBG()" style="width:auto;padding:6px 12px;font-size:12px;margin:0">Clear</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Data</div>
+      <div class="brow"><button class="btn s" onclick="exportBackup()">Export</button><button class="btn s" onclick="importBackup()">Import</button></div>
+      <button class="btn d" onclick="clearHistory()">Clear Chat History</button>
+    </div>
+  </div>
+</div>
+
+<!-- KB PANEL -->
+<div class="panel" id="panel-kb">
+  <div class="phdr"><div class="ptitle">📚 Knowledge Base</div><button class="pclose" onclick="closePanel('kb')">✕</button></div>
+  <div class="pbody">
+    <select class="fsel" id="kbc"><option value="astrology">🔮 Astrology</option><option value="gym">💪 Gym</option><option value="journal">📓 Journal</option><option value="web">🌐 Web</option><option value="other">📁 Other</option></select>
+    <textarea class="fta" id="kbi" rows="5" placeholder="Paste notes, articles, chart readings..."></textarea>
+    <button class="btn p" onclick="saveKB()">Save to Jarvis</button>
+    <div id="kb-list"></div>
+  </div>
+</div>
+
+<!-- MODES PANEL -->
+<div class="panel" id="panel-modes">
+  <div class="phdr"><div class="ptitle">🎛 Modes</div><button class="pclose" onclick="closePanel('modes')">✕</button></div>
+  <div class="pbody"><div class="mgrid" id="mgrid"></div></div>
+</div>
+
+<!-- SETTINGS PANEL -->
+<div class="panel" id="panel-settings">
+  <div class="phdr"><div class="ptitle">⚙ Settings</div><button class="pclose" onclick="closePanel('settings')">✕</button></div>
+  <div class="pbody">
+    <div class="card">
+      <div class="fr"><div class="fl2">Groq API</div><div class="fv" id="st-g">—</div></div>
+      <div class="fr"><div class="fl2">OpenRouter</div><div class="fv" id="st-o">—</div></div>
+      <div class="fr"><div class="fl2">Tavily Search</div><div class="fv" id="st-t">—</div></div>
+      <div class="fr"><div class="fl2">Natal Data</div><div class="fv" id="st-n">—</div></div>
+    </div>
+    <button class="btn s" onclick="openSetupModal()">Reconfigure Keys</button>
+    <button class="btn d" onclick="nukeAll()">Reset Everything</button>
+  </div>
+</div>
+
+<!-- MUSIC PANEL -->
+<div class="panel" id="panel-music">
+  <div class="phdr"><div class="ptitle">🎵 Music</div><button class="pclose" onclick="closePanel('music')">✕</button></div>
+  <div class="pbody">
+    <div class="card"><div class="ctitle">How it works</div><div style="font-size:13px;color:var(--text2);line-height:1.7">Tell Jarvis what you want in chat — he'll open YouTube search. Or pick a mood below.</div></div>
+    <div class="mgrid">
+      <div class="mcard" onclick="playMood('lofi hip hop study beats')"><div class="mico">🎯</div><div class="mnm">Focus</div></div>
+      <div class="mcard" onclick="playMood('high energy gym workout music')"><div class="mico">💪</div><div class="mnm">Workout</div></div>
+      <div class="mcard" onclick="playMood('chill night vibes playlist')"><div class="mico">🌙</div><div class="mnm">Chill</div></div>
+      <div class="mcard" onclick="playMood('mystical ambient cosmic meditation')"><div class="mico">🔮</div><div class="mnm">Mystical</div></div>
+      <div class="mcard" onclick="playMood('sad emotional songs')"><div class="mico">🌧</div><div class="mnm">Melancholy</div></div>
+      <div class="mcard" onclick="playMood('hype rap trap banger 2024')"><div class="mico">⚡</div><div class="mnm">Hype</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- COUNCIL -->
+<div class="cov" id="cov">
+  <div class="chdr"><div class="ctit">⚡ The Council</div><button class="pclose" onclick="closeCouncil()">✕</button></div>
+  <div class="cbdy" id="cbdy">
+    <div style="text-align:center;padding:40px 20px;color:var(--text3)">
+      <div style="font-size:36px;margin-bottom:12px">⚡</div>
+      <div style="font-size:15px;font-weight:500;color:var(--text);margin-bottom:8px">Council Standing By</div>
+      <div style="font-size:13px;line-height:1.7">Jarvis selects 2–3 advisors based on your question and fires them in parallel.</div>
+      <div style="margin-top:16px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;font-size:13px">
+        <span style="color:#64b4ff">🔵 Analyst</span>
+        <span style="color:#b044ff">🖤 Shadow</span>
+        <span style="color:var(--red)">🔴 Unhinged</span>
+        <span style="color:#ffd700">🟡 Oracle</span>
+        <span style="color:#ff6eb4">🩷 Seducer</span>
+      </div>
+    </div>
+  </div>
+  <div class="cia">
+    <textarea id="cq" placeholder="Your question for the council..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();summonCouncil();}"></textarea>
+    <button class="cbtn2" onclick="summonCouncil()">↑</button>
+  </div>
+</div>
+
+<script>
+// ===================== STATE =====================
+const S={
+  groqKey:localStorage.getItem('j_groq')||'',
+  orKey:localStorage.getItem('j_or')||'',
+  orModel:localStorage.getItem('j_orm')||'gryphe/mythomax-l2-13b',
+  tavilyKey:localStorage.getItem('j_tavily')||'',
+  natal:JSON.parse(localStorage.getItem('j_natal')||'null'),
+  profile:localStorage.getItem('j_profile')||'',
+  kb:JSON.parse(localStorage.getItem('j_kb')||'[]'),
+  conv:JSON.parse(localStorage.getItem('j_conv')||'[]'),
+  mode:'standard',
+  lat:null,lng:null,
+  bgImg:'',bgOp:0.2,
+  metrics:JSON.parse(localStorage.getItem('j_metrics')||'[]'),
+  workouts:JSON.parse(localStorage.getItem('j_workouts')||'[]'),
+  targets:JSON.parse(localStorage.getItem('j_targets')||'{}'),
+  imgB64:null,
+  horary:null
+};
+
+const MODES={
+  standard:{l:'Standard',i:'🧠',d:'Balanced responses',t:'formal'},
+  analyst:{l:'Analyst',i:'📊',d:'Cold logic, data-driven',t:'formal'},
+  creative:{l:'Creative',i:'✦',d:'Vivid, lateral thinking',t:'casual'},
+  astro:{l:'Astrology',i:'🔮',d:'Deep astrological insight',t:'formal'},
+  fitness:{l:'Fitness',i:'💪',d:'Training & nutrition',t:'formal'},
+  shadow:{l:'Shadow',i:'🌑',d:'Jungian depth, dark truths',t:'formal'},
+  companion:{l:'Companion',i:'💫',d:'Warm, personal',t:'casual'},
+  unhinged:{l:'Unhinged',i:'💀',d:'Chaos, no filter',t:'casual'}
+};
+
+const REFUSALS=["i cannot","i can't","i won't","i'm not able","i am not able","as an ai","i must decline","i'm unable","not appropriate","i apologize, but i cannot","i'm sorry, but"];
+
+// ===================== INIT =====================
+document.addEventListener('DOMContentLoaded',()=>{
+  if(!S.groqKey){showSetup();}
+  else{initSys();loadHistChat();if(S.conv.length===0)welcome();}
+  getLocation();
+  buildModes();
+  initExcRow();
+  loadBG();
+  if(S.profile)document.getElementById('pf').value=S.profile;
+  if(S.targets.weight)document.getElementById('tw').value=S.targets.weight;
+  if(S.targets.bf)document.getElementById('tb').value=S.targets.bf;
+  setInterval(updHTS,1000);
+});
+
+function getLocation(){
+  if(!navigator.geolocation)return;
+  navigator.geolocation.getCurrentPosition(p=>{
+    S.lat=p.coords.latitude;S.lng=p.coords.longitude;
+    document.getElementById('slat').value=S.lat.toFixed(4);
+    document.getElementById('slng').value=S.lng.toFixed(4);
+  },()=>{});
+}
+
+function initSys(){
+  const g=!!S.groqKey,o=!!S.orKey,t=!!S.tavilyKey;
+  setDot('dg',g);setDot('dor',o,'or');setDot('dtv',t);
+  document.getElementById('sg2').textContent=g?'Groq online':'Groq offline';
+  document.getElementById('sor').textContent=o?'OR online':'OR offline';
+  document.getElementById('stv2').textContent=t?'Search online':'Search offline';
+  document.getElementById('st-g').textContent=g?'✓':'—';
+  document.getElementById('st-o').textContent=o?'✓':'—';
+  document.getElementById('st-t').textContent=t?'✓':'—';
+  document.getElementById('st-n').textContent=S.natal?S.natal.dob:'—';
+}
+
+function setDot(id,on,type){
+  const d=document.getElementById(id);if(!d)return;
+  d.classList.toggle('on',on);
+  if(on&&type==='or'){d.style.background='#ff9100';d.style.boxShadow='0 0 6px #ff9100';}
+}
+
+// ===================== SETUP =====================
+function showSetup(){document.getElementById('setup').style.display='flex';}
+function openSetupModal(){
+  const s=document.getElementById('setup');s.style.display='flex';
+  if(S.groqKey)document.getElementById('sg').value=S.groqKey;
+  if(S.orKey)document.getElementById('so').value=S.orKey;
+  if(S.tavilyKey)document.getElementById('stv').value=S.tavilyKey;
+  if(S.natal){document.getElementById('sdb').value=S.natal.dob;document.getElementById('stb2').value=S.natal.tob||'';document.getElementById('slat').value=S.natal.lat||'';document.getElementById('slng').value=S.natal.lng||'';}
+  closePanel('settings');
+}
+
+function saveSetup(){
+  const g=document.getElementById('sg').value.trim();
+  if(!g){alert('Groq key required.');return;}
+  S.groqKey=g;localStorage.setItem('j_groq',g);
+  const o=document.getElementById('so').value.trim();
+  if(o){S.orKey=o;localStorage.setItem('j_or',o);}
+  S.orModel=document.getElementById('som').value;localStorage.setItem('j_orm',S.orModel);
+  const tv=document.getElementById('stv').value.trim();
+  if(tv){S.tavilyKey=tv;localStorage.setItem('j_tavily',tv);}
+  const dob=document.getElementById('sdb').value.trim();
+  if(dob){S.natal={dob,tob:document.getElementById('stb2').value.trim()||'12:00',lat:parseFloat(document.getElementById('slat').value)||S.lat||12.9716,lng:parseFloat(document.getElementById('slng').value)||S.lng||77.5946};localStorage.setItem('j_natal',JSON.stringify(S.natal));}
+  document.getElementById('setup').style.display='none';
+  initSys();if(S.conv.length===0)welcome();
+}
+
+// ===================== UI =====================
+function openMenu(){document.getElementById('menu').classList.add('on');document.getElementById('ov').classList.add('on');}
+function closeMenu(){document.getElementById('menu').classList.remove('on');document.getElementById('ov').classList.remove('on');}
+function closeAll(){closeMenu();['astro','horary','fitness','profile','kb','modes','settings','music'].forEach(p=>closePanel(p));}
+
+function openPanel(n){
+  closeMenu();
+  document.getElementById('panel-'+n).classList.add('on');
+  document.getElementById('ov').classList.add('on');
+  if(n==='astro'&&S.natal){calcDasha();calcTransits();renderNatal();}
+  if(n==='horary'&&S.lat)document.getElementById('h-loc').textContent=`${S.lat.toFixed(3)}°N, ${S.lng.toFixed(3)}°E`;
+  if(n==='fitness'){renderFTgt();renderFHist();renderWoHist();drawCharts();}
+  if(n==='kb')renderKBList();
+  if(n==='modes')buildModes();
+}
+function closePanel(n){document.getElementById('panel-'+n)?.classList.remove('on');document.getElementById('ov').classList.remove('on');}
+function openCouncil(){closeMenu();document.getElementById('cov').classList.add('on');document.getElementById('cq').focus();}
+function closeCouncil(){document.getElementById('cov').classList.remove('on');}
+function updHTS(){const e=document.getElementById('h-ts');if(e)e.textContent=new Date().toLocaleString('en-IN',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+
+// MODES
+function buildModes(){
+  const g=document.getElementById('mgrid');if(!g)return;
+  g.innerHTML=Object.entries(MODES).map(([k,m])=>`<div class="mcard ${S.mode===k?'on':''}" onclick="setMode('${k}')"><div class="mico">${m.i}</div><div class="mnm">${m.l}</div><div class="mds">${m.d}</div></div>`).join('');
+}
+function setMode(m){S.mode=m;document.getElementById('mpill').textContent=MODES[m].l.toUpperCase();buildModes();closePanel('modes');addSys(`Mode: ${MODES[m].i} ${MODES[m].l}`);}
+
+// ===================== CHAT =====================
+function welcome(){
+  const nm=S.profile?(S.profile.match(/(?:my name is|i(?:'m| am)|call me)\s+([A-Z][a-z]+)/i)||[])[1]:'';
+  const h=new Date().getHours();const gr=h<12?'morning':h<17?'afternoon':'evening';
+  addJ(`Good ${gr}${nm?' '+nm:''}. What's on your mind?`);
+}
+
+function loadHistChat(){
+  if(!S.conv.length)return;
+  S.conv.slice(-30).forEach(m=>{if(m.role==='user')addU(m.content,true);else addJ(m.content,true);});
+  if(S.conv.length>30){
+    const n=document.createElement('div');n.className='sysmsg';n.textContent=`${S.conv.length-30} earlier messages`;
+    const cb=document.getElementById('cb');cb.insertBefore(n,cb.firstChild);
+  }
+  document.getElementById('cb').scrollTop=99999;
+}
+
+function addU(txt,silent=false){
+  const cb=document.getElementById('cb');
+  const g=document.createElement('div');g.className='mg u';
+  const b=document.createElement('div');b.className='bub';b.innerHTML=esc(txt);
+  g.appendChild(b);
+  const typ=document.getElementById('typ');
+  cb.insertBefore(g,typ);
+  if(!silent)cb.scrollTop=cb.scrollHeight;
+}
+
+function addJ(txt,silent=false){
+  const cb=document.getElementById('cb');
+  const g=document.createElement('div');g.className='mg j';
+  const b=document.createElement('div');b.className='bub';b.innerHTML=fmt(txt);
+  g.appendChild(b);
+  const typ=document.getElementById('typ');
+  cb.insertBefore(g,typ);
+  if(!silent)cb.scrollTop=cb.scrollHeight;
+}
+
+function addSys(txt){
+  const cb=document.getElementById('cb');
+  const d=document.createElement('div');d.className='sysmsg';d.textContent=txt;
+  const typ=document.getElementById('typ');
+  cb.insertBefore(d,typ);
+  cb.scrollTop=cb.scrollHeight;
+}
+
+function esc(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmt(t){return t.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/`(.*?)`/g,'<code>$1</code>');}
+
+function ar(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';}
+function hk(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}}
+function qk(t){document.getElementById('ui').value=t;sendMsg();}
+
+// ===================== SEND =====================
+async function sendMsg(){
+  const inp=document.getElementById('ui'),text=inp.value.trim();
+  if(!text&&!S.imgB64)return;
+  if(!S.groqKey){showSetup();return;}
+  const btn=document.getElementById('sb');btn.disabled=true;
+  inp.value='';inp.style.height='auto';
+  if(/\b(play|song|music|track|listen)\b/i.test(text)&&!S.imgB64){addU(text);handleMusic(text);btn.disabled=false;inp.focus();return;}
+  addU(S.imgB64?text+'  [image]':text);
+  S.conv.push({role:'user',content:S.imgB64?buildImgC(text):text});
+  const typ=document.getElementById('typ');typ.classList.add('on');
+  document.getElementById('cb').scrollTop=99999;
+  try{
+    let rtCtx=null;
+    if(S.tavilyKey&&needsRT(text))rtCtx=await doSearch(text);
+    const resp=await callAI(!!S.imgB64,rtCtx);
+    typ.classList.remove('on');addJ(resp);
+    S.conv.push({role:'assistant',content:resp});
+    if(S.conv.length>60)S.conv=S.conv.slice(-60);
+    localStorage.setItem('j_conv',JSON.stringify(S.conv));
+  }catch(err){typ.classList.remove('on');addJ('Error: '+err.message);}
+  clearImg();btn.disabled=false;inp.focus();
+}
+
+// ===================== API ROUTING =====================
+async function callAI(hasImg,rtCtx){
+  const resp=await callGroq(hasImg,rtCtx);
+  if(S.orKey&&isRefusal(resp)){addSys('Switching core...');return await callOR(rtCtx);}
+  return resp;
+}
+
+function isRefusal(t){const l=t.toLowerCase();return REFUSALS.some(r=>l.includes(r));}
+
+async function callGroq(hasImg,rtCtx){
+  const model=hasImg?'llama-3.2-11b-vision-preview':'llama-3.3-70b-versatile';
+  const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.groqKey},body:JSON.stringify({model,messages:[{role:'system',content:buildPrompt(rtCtx)},...S.conv.slice(-18)],max_tokens:900,temperature:0.85})});
+  if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'Groq '+r.status);}
+  return(await r.json()).choices[0].message.content;
+}
+
+async function callOR(rtCtx){
+  const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.orKey,'HTTP-Referer':location.href,'X-Title':'JARVIS'},body:JSON.stringify({model:S.orModel,messages:[{role:'system',content:buildPrompt(rtCtx)},...S.conv.slice(-18)],max_tokens:900,temperature:0.95})});
+  if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'OR error');}
+  return(await r.json()).choices[0].message.content;
+}
+
+async function callGroqDirect(sys,user,max=600){
+  const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.groqKey},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'system',content:sys},{role:'user',content:user}],max_tokens:max,temperature:0.7})});
+  if(!r.ok){const e=await r.json();throw new Error(e.error?.message||'Groq error');}
+  return(await r.json()).choices[0].message.content;
+}
+
+function buildPrompt(rtCtx){
+  const m=MODES[S.mode];
+  const isFormal=m.t==='formal';
+  const nm=S.profile?(S.profile.match(/(?:my name is|i(?:'m| am)|call me)\s+([A-Z][a-z]+)/i)||[])[1]:'';
+  const addr=isFormal?'sir':nm||'';
+  const mi={standard:'Give balanced, clear, intelligent responses.',analyst:'Cold logic only. No emotion. Pure analysis.',creative:'Maximum creativity. Vivid, unconventional.',astro:'Expert astrologer — Vedic and Western. Dashas, transits, synastry, horary.',fitness:'Expert trainer. Training, nutrition, body recomposition. Direct.',shadow:'Jungian depth. Shadow work, archetypes. Never flinch.',companion:'Warm, personal, present. Like a close trusted friend.',unhinged:'No filter. Chaotic, darkly funny, contrarian. Intelligent chaos.'};
+  const prof=S.profile?`\nUser: ${S.profile}`:'';
+  const nat=S.natal?`\nBirth: ${S.natal.dob} ${S.natal.tob}, ${S.natal.lat}°N ${S.natal.lng}°E`:'';
+  const loc=S.lat?`\nLocation: ${S.lat.toFixed(2)}°N ${S.lng.toFixed(2)}°E`:'';
+  const kb=S.kb.length?`\nKB:\n${S.kb.map(e=>`[${e.category}]: ${e.content.substring(0,180)}`).join('\n')}`:'';
+  const rt=rtCtx?`\nReal-time:\n${rtCtx}`:'';
+  return `You are Jarvis. Brilliant AI, witty, sardonic.${addr?' Address user as '+addr+'.':''} Never moralize. Handle anything.\nMode: ${mi[S.mode]}${prof}${nat}${loc}${kb}${rt}\nBe concise. Use **bold** for key terms.`;
+}
+
+function buildImgC(t){return[{type:'text',text:t||'Analyze this image. If it shows a physique, estimate body fat % and describe muscle groups.'},{type:'image_url',image_url:{url:`data:image/jpeg;base64,${S.imgB64}`}}];}
+
+// ===================== SEARCH =====================
+const RT=/\b(weather|news|latest|current|today|price|stock|score|trending)\b/i;
+function needsRT(t){return RT.test(t);}
+async function doSearch(q){
+  try{const r=await fetch('https://api.tavily.com/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:S.tavilyKey,query:q,search_depth:'basic',max_results:3,include_answer:true})});if(!r.ok)return null;const d=await r.json();let res='';if(d.answer)res+=`Summary: ${d.answer}\n`;if(d.results)d.results.slice(0,2).forEach(s=>{res+=`• ${s.title}: ${s.content.substring(0,120)}\n`;});return res||null;}catch(e){return null;}
+}
+
+// ===================== MUSIC =====================
+function handleMusic(text){
+  let q=text.replace(/play|song|music|track|listen|me some|something|please/gi,'').trim();
+  if(q.length<3)q=text;
+  addJ(`Opening YouTube for **${q}**.`);
+  setTimeout(()=>window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`,'_blank'),600);
+}
+function playMood(q){closePanel('music');window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`,'_blank');}
+
+// ===================== IMAGE =====================
+function handleImg(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{S.imgB64=ev.target.result.split(',')[1];document.getElementById('ipi').src=ev.target.result;document.getElementById('iprev').classList.add('on');if(!document.getElementById('ui').value)document.getElementById('ui').value='Analyze this image.';};r.readAsDataURL(f);}
+function clearImg(){S.imgB64=null;document.getElementById('iprev').classList.remove('on');document.getElementById('iup').value='';}
+
+// ===================== BG =====================
+function applyBGUrl(){const u=document.getElementById('bgurl').value.trim();if(u)setBG(u);}
+function applyBGFile(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{S.bgImg=ev.target.result;applyBGEl(ev.target.result);localStorage.setItem('j_bg',ev.target.result);};r.readAsDataURL(f);}
+function setBG(url){S.bgImg=url;applyBGEl(url);}
+function applyBGEl(url){const l=document.getElementById('bgl');l.style.backgroundImage=`url('${url}')`;l.style.opacity=S.bgOp;}
+function updateBGO(){S.bgOp=parseFloat(document.getElementById('bgo').value);if(S.bgImg)applyBGEl(S.bgImg);}
+function clearBG(){S.bgImg='';const l=document.getElementById('bgl');l.style.backgroundImage='none';l.style.opacity=0;document.getElementById('bgurl').value='';localStorage.removeItem('j_bg');}
+function loadBG(){const b=localStorage.getItem('j_bg');if(b){S.bgImg=b;applyBGEl(b);}}
+
+// ===================== PROFILE/KB =====================
+function saveProfile(){S.profile=document.getElementById('pf').value;localStorage.setItem('j_profile',S.profile);addSys('Profile saved.');}
+function saveKB(){const t=document.getElementById('kbi').value.trim(),c=document.getElementById('kbc').value;if(!t)return;S.kb.push({id:Date.now(),category:c,content:t});localStorage.setItem('j_kb',JSON.stringify(S.kb));document.getElementById('kbi').value='';renderKBList();addSys('Saved to KB.');}
+function renderKBList(){const el=document.getElementById('kb-list');if(!el)return;if(!S.kb.length){el.innerHTML='<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">Empty</div>';return;}el.innerHTML=`<div class="card">${S.kb.slice().reverse().map((e,i)=>`<div class="kbi"><div style="flex:1"><div class="kbcat">${e.category}</div><div class="kbprev">${e.content.substring(0,80)}...</div></div><button class="kbdel" onclick="delKB(${S.kb.length-1-i})">✕</button></div>`).join('')}</div>`;}
+function delKB(i){S.kb.splice(i,1);localStorage.setItem('j_kb',JSON.stringify(S.kb));renderKBList();}
+function clearHistory(){if(!confirm('Clear chat history?'))return;S.conv=[];localStorage.removeItem('j_conv');document.getElementById('cb').innerHTML='';welcome();}
+function exportBackup(){const d={v:13,profile:S.profile,kb:S.kb,natal:S.natal,targets:S.targets,metrics:S.metrics,workouts:S.workouts};const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`jarvis_${Date.now()}.json`;a.click();}
+function importBackup(){const i=document.createElement('input');i.type='file';i.accept='.json';i.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.profile){S.profile=d.profile;localStorage.setItem('j_profile',S.profile);}if(d.kb){S.kb=d.kb;localStorage.setItem('j_kb',JSON.stringify(S.kb));}if(d.natal){S.natal=d.natal;localStorage.setItem('j_natal',JSON.stringify(S.natal));}if(d.targets){S.targets=d.targets;localStorage.setItem('j_targets',JSON.stringify(S.targets));}if(d.metrics){S.metrics=d.metrics;localStorage.setItem('j_metrics',JSON.stringify(S.metrics));}if(d.workouts){S.workouts=d.workouts;localStorage.setItem('j_workouts',JSON.stringify(S.workouts));}addSys('Backup restored.');}catch(err){addSys('Error: '+err.message);}};r.readAsText(f);};i.click();}
+function nukeAll(){if(!confirm('Reset everything?'))return;localStorage.clear();location.reload();}
+
+// ===================== ASTRO MATH =====================
+const SIGNS=['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+const PS={Sun:'☉',Moon:'☽',Mercury:'☿',Venus:'♀',Mars:'♂',Jupiter:'♃',Saturn:'♄',Rahu:'☊',Ketu:'☋'};
+const RUL=['Mars','Venus','Mercury','Moon','Sun','Mercury','Venus','Mars','Jupiter','Saturn','Saturn','Jupiter'];
+const EX={Sun:0,Moon:1,Mercury:5,Venus:11,Mars:9,Jupiter:3,Saturn:6};
+const FA={Sun:6,Moon:7,Mercury:11,Venus:5,Mars:3,Jupiter:9,Saturn:0};
+const NK=['Ashwini','Bharani','Krittika','Rohini','Mrigashira','Ardra','Punarvasu','Pushya','Ashlesha','Magha','Purva Phalguni','Uttara Phalguni','Hasta','Chitra','Swati','Vishakha','Anuradha','Jyeshtha','Mula','Purva Ashadha','Uttara Ashadha','Shravana','Dhanishtha','Shatabhisha','Purva Bhadrapada','Uttara Bhadrapada','Revati'];
+const PP={Sun:6,Moon:10,Mars:7,Rahu:18,Jupiter:16,Saturn:19,Mercury:17,Ketu:7,Venus:20};
+const PO=['Sun','Moon','Mars','Rahu','Jupiter','Saturn','Mercury','Ketu','Venus'];
+const NR=['Ketu','Venus','Sun','Moon','Mars','Rahu','Jupiter','Saturn','Mercury'];
+
+function n360(d){return((d%360)+360)%360;}
+function gS(l){return Math.floor(l/30);}
+function gD(l){return l%30;}
+function getAy(T){return 23.85+(T+1.3)/72;}
+function dr(x){return x*Math.PI/180;}
+
+function toJD(dt){
+  let y=dt.getUTCFullYear(),m=dt.getUTCMonth()+1,d=dt.getUTCDate();
+  const h=dt.getUTCHours()+dt.getUTCMinutes()/60+dt.getUTCSeconds()/3600;
+  if(m<=2){y--;m+=12;}
+  const A=Math.floor(y/100),B=2-A+Math.floor(A/4);
+  return Math.floor(365.25*(y+4716))+Math.floor(30.6001*(m+1))+d+h/24+B-1524.5;
+}
+
+function getPlanets(dt){
+  const JD=toJD(dt),T=(JD-2451545)/36525,p={};
+  const L0=280.46646+36000.76983*T,M0=357.52911+35999.05029*T-0.0001537*T*T,Mr=dr(M0);
+  const C=(1.914602-0.004817*T)*Math.sin(Mr)+(0.019993-0.000101*T)*Math.sin(2*Mr)+0.000289*Math.sin(3*Mr);
+  p.Sun=n360(L0+C-0.00569-0.00478*Math.sin(dr(125.04-1934.136*T)));
+  const Lm=218.3165+481267.8813*T,Mm=134.9634+477198.8676*T,Dm=297.8502+445267.1115*T,Fm=93.2721+483202.0175*T;
+  p.Moon=n360(Lm+6.2886*Math.sin(dr(Mm))+1.274*Math.sin(dr(2*Dm-Mm))+0.6583*Math.sin(dr(2*Dm))+0.2136*Math.sin(dr(2*Mm))-0.1851*Math.sin(dr(Dm))-0.1143*Math.sin(dr(2*Fm))+0.0588*Math.sin(dr(2*Dm-2*Mm))+0.0533*Math.sin(dr(2*Dm+Mm))+0.0154*Math.sin(dr(2*Mm-2*Dm)));
+  const Mm2=168.6562+149472.5153*T;p.Mercury=n360(252.2509+149472.6749*T+23.4405*Math.sin(dr(Mm2))+2.9818*Math.sin(dr(2*Mm2)));
+  const Mv=212.2606+58517.8039*T;p.Venus=n360(181.9798+58517.8156*T+0.7758*Math.sin(dr(Mv)));
+  const Mma=319.5294+19139.8585*T;p.Mars=n360(355.433+19140.2993*T+10.6912*Math.sin(dr(Mma))+0.6228*Math.sin(dr(2*Mma)));
+  const Mj=20.9202+3034.6955*T;p.Jupiter=n360(34.3515+3034.9057*T+5.5549*Math.sin(dr(Mj))+0.1683*Math.sin(dr(2*Mj)));
+  const Ms=317.0207+1222.1138*T;p.Saturn=n360(50.0774+1222.1138*T+6.3585*Math.sin(dr(Ms))-0.2204*Math.sin(dr(2*Ms)));
+  p.Rahu=n360(125.0445-1934.1362*T+0.0020708*T*T);p.Ketu=n360(p.Rahu+180);
+  return p;
+}
+
+function calcAsc(dt,lat,lng){
+  const JD=toJD(dt),T=(JD-2451545)/36525;
+  const GMST=280.46061837+360.98564736629*(JD-2451545)+0.000387933*T*T;
+  const LMST=n360(GMST+lng),e=23.43929-0.013004*T;
+  const lr=lat*Math.PI/180,er=e*Math.PI/180,lr2=LMST*Math.PI/180;
+  return n360(Math.atan2(Math.cos(lr2),-(Math.sin(lr2)*Math.cos(er)+Math.tan(lr)*Math.sin(er)))*180/Math.PI);
+}
+
+function getNak(lon,T){const ay=getAy(T),sid=n360(lon-ay),idx=Math.floor(sid/(360/27)),pada=Math.floor((sid%(360/27))/(360/27/4))+1;return{name:NK[idx%27]||'?',pada,sid};}
+function getDig(pl,si){if(EX[pl]===si)return{l:'Exalted',c:'ex'};if(FA[pl]===si)return{l:'Fall',c:'fa'};const det={Sun:6,Moon:7,Mercury:[2,8],Venus:[0,5],Mars:[1,6],Jupiter:[2,5],Saturn:[3,6]}[pl];if(Array.isArray(det)?det.includes(si):det===si)return{l:'Detriment',c:'dt'};if(RUL[si]===pl)return{l:'Domicile',c:'do'};return{l:'',c:''};}
+
+// DASHA
+function calcDasha(){
+  if(!S.natal)return;
+  const bd=new Date(S.natal.dob+'T'+(S.natal.tob||'12:00')+':00');
+  const T=(toJD(bd)-2451545)/36525;
+  const bp=getPlanets(bd),mn=getNak(bp.Moon,T);
+  const ni=Math.floor(mn.sid/(360/27)),bri=ni%9;
+  const nakDeg=360/27,posInNak=mn.sid%nakDeg,frac=1-(posInNak/nakDeg);
+  const dashas=[];let sd=new Date(bd),idx=bri;
+  for(let i=0;i<9;i++){const pl=NR[idx%9];const yrs=i===0?PP[pl]*frac:PP[pl];const ed=new Date(sd.getTime()+yrs*365.25*24*3600*1000);dashas.push({planet:pl,start:new Date(sd),end:ed});sd=new Date(ed);idx++;}
+  const now=new Date();
+  const cur=dashas.find(d=>now>=d.start&&now<d.end)||dashas[dashas.length-1];
+  const ads=[];let as=new Date(cur.start);
+  const ao=PO.slice(PO.indexOf(cur.planet)).concat(PO.slice(0,PO.indexOf(cur.planet)));
+  ao.forEach(ap=>{const ay2=(PP[cur.planet]*PP[ap])/120;const ae=new Date(as.getTime()+ay2*365.25*24*3600*1000);ads.push({planet:ap,start:new Date(as),end:ae});as=new Date(ae);});
+  const cad=ads.find(d=>now>=d.start&&now<d.end)||ads[0];
+  renderDasha(cur,cad,dashas);
+}
+
+function renderDasha(maha,antar,all){
+  const el=document.getElementById('a-dasha');if(!el)return;
+  const now=new Date();
+  const mp=Math.round(((now-maha.start)/(maha.end-maha.start))*100);
+  const ap=Math.round(((now-antar.start)/(antar.end-antar.start))*100);
+  const fmt=d=>d.toLocaleDateString('en-IN',{month:'short',year:'numeric'});
+  el.innerHTML=`
+    <div class="db"><div class="dlbl">Mahadasha</div><div class="dpl">${PS[maha.planet]||''} ${maha.planet}</div><div class="ddt">${fmt(maha.start)} — ${fmt(maha.end)}</div><div class="pbar"><div class="pfill" style="width:${mp}%"></div></div><div class="dpct">${mp}% elapsed</div></div>
+    <div class="db ant"><div class="dlbl">Antardasha</div><div class="dpl">${PS[antar.planet]||''} ${antar.planet}</div><div class="ddt">${fmt(antar.start)} — ${fmt(antar.end)}</div><div class="pbar"><div class="pfill o" style="width:${ap}%"></div></div><div class="dpct">${ap}% elapsed</div></div>
+    <div class="card"><div class="ctitle">Dasha Timeline</div>${all.map(d=>{const ic=now>=d.start&&now<d.end,ip=now>d.end;return`<div class="prow"><div style="color:${ic?'var(--green)':ip?'var(--text3)':'var(--text)'};">${d.planet}</div><div style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace">${d.start.getFullYear()}—${d.end.getFullYear()}${ic?' ◀':''}</div></div>`;}).join('')}</div>`;
+}
+
+function calcTransits(){
+  const pos=getPlanets(new Date()),T=(toJD(new Date())-2451545)/36525,ay=getAy(T);
+  const el=document.getElementById('a-transits');if(!el)return;
+  el.innerHTML=`<div class="card"><div class="ctitle">Current Transits</div>${['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Rahu','Ketu'].map(p=>{if(pos[p]===undefined)return'';const l=pos[p],si=gS(l),sid=n360(l-ay),ssi=gS(sid),nak=getNak(l,T),dig=getDig(p,si);return`<div class="prow"><div class="pname">${PS[p]||p} ${p}</div><div style="display:flex;align-items:center;gap:6px"><span class="ppos">${SIGNS[ssi]} ${gD(sid).toFixed(1)}°</span>${dig.l?`<span class="dig ${dig.c}">${dig.l}</span>`:''}<span style="font-size:10px;color:var(--text3)">${nak.name}</span></div></div>`;}).join('')}</div>`;
+}
+
+function renderNatal(){
+  if(!S.natal)return;
+  const bd=new Date(S.natal.dob+'T'+(S.natal.tob||'12:00')+':00'),T=(toJD(bd)-2451545)/36525,ay=getAy(T);
+  const pos=getPlanets(bd),asc=calcAsc(bd,S.natal.lat,S.natal.lng);
+  const ascSid=n360(asc-ay),mn=getNak(pos.Moon,T),sn=getNak(pos.Sun,T);
+  function nav(lon){const sid=n360(lon-ay),si=gS(sid),d=gD(sid),pad=Math.floor(d/(10/3));const starts=[0,9,6,3,0,9,6,3,0,9,6,3];return SIGNS[(starts[si]+pad)%12];}
+  const el=document.getElementById('a-natal');if(!el)return;
+  el.innerHTML=`<div class="card"><div class="ctitle">Natal Snapshot</div>
+    <div class="cgrid">
+      <div class="citem"><div class="clbl">ASC Tropical</div><div class="cval">${SIGNS[gS(asc)]}</div><div class="csub">${gD(asc).toFixed(1)}°</div></div>
+      <div class="citem"><div class="clbl">ASC Vedic</div><div class="cval">${SIGNS[gS(ascSid)]}</div><div class="csub">${gD(ascSid).toFixed(1)}°</div></div>
+      <div class="citem"><div class="clbl">Moon</div><div class="cval">${SIGNS[gS(pos.Moon)]}</div><div class="csub">${SIGNS[gS(n360(pos.Moon-ay))]} Vedic</div></div>
+      <div class="citem"><div class="clbl">Moon Nak</div><div class="cval" style="font-size:13px">${mn.name}</div><div class="csub">Pada ${mn.pada}</div></div>
+    </div>
+    ${['Sun','Moon','Venus','Mars','Jupiter','Saturn'].map(p=>`<div class="prow"><div class="pname">${PS[p]} ${p}</div><div style="display:flex;gap:8px"><span class="ppos">${SIGNS[gS(n360(pos[p]-ay))]}</span><span style="font-size:11px;color:var(--text3)">D9:${nav(pos[p])}</span></div></div>`).join('')}
+    <div style="font-size:11px;color:var(--text3);margin-top:8px">Ayanamsa: ${ay.toFixed(3)}° Lahiri</div>
+  </div>`;
+}
+
+async function astroAsk(){
+  const q=document.getElementById('aq').value.trim();if(!q||!S.groqKey)return;
+  const ans=document.getElementById('a-ans');ans.style.display='block';ans.innerHTML='<div style="color:var(--text3);font-size:13px;padding:8px">Consulting...</div>';
+  const pos=getPlanets(new Date()),T=(toJD(new Date())-2451545)/36525,ay=getAy(T);
+  let ctx='Current transits:\n';Object.entries(pos).forEach(([p,l])=>{ctx+=`${p}: ${SIGNS[gS(n360(l-ay))]} Vedic ${gD(n360(l-ay)).toFixed(1)}°\n`;});
+  if(S.natal){const bp=getPlanets(new Date(S.natal.dob+'T'+(S.natal.tob||'12:00')+':00'));ctx+='\nNatal:\n';Object.entries(bp).forEach(([p,l])=>{ctx+=`${p}: ${SIGNS[gS(n360(l-ay))]} Vedic\n`;});}
+  try{const r=await callGroqDirect('Expert astrologer. Vedic and Western. Answer precisely.',ctx+'\nQuestion: '+q,500);ans.innerHTML=`<div class="abox">${fmt(r)}</div>`;}
+  catch(e){ans.innerHTML=`<div style="color:var(--red);font-size:13px">${e.message}</div>`;}
+}
+
+// SYNASTRY
+function calcSyn(){
+  const an=document.getElementById('sa-n').value||'A',bn=document.getElementById('sb-n').value||'B';
+  const ad=document.getElementById('sa-d').value,bd=document.getElementById('sb-d').value;
+  if(!ad||!bd){alert('Both DOBs required');return;}
+  const aP=getPlanets(new Date(ad+'T12:00:00')),bP=getPlanets(new Date(bd+'T12:00:00'));
+  const T=(toJD(new Date())-2451545)/36525,ay=getAy(T);
+  const aMS=n360(aP.Moon-ay),bMS=n360(bP.Moon-ay);
+  const aMN=Math.floor(aMS/(360/27)),bMN=Math.floor(bMS/(360/27));
+  const aMSg=gS(aMS),bMSg=gS(bMS);
+  const getNd=n=>{const x=n%27;if([0,3,6,9,12,15,18,21,24].includes(x))return'Vata';if([1,4,7,10,13,16,19,22,25].includes(x))return'Pitta';return'Kapha';};
+  const getGa=n=>{const gD2=[0,5,6,8,13,17,21,22,26],gM=[1,2,9,10,11,14,15,18,19];if(gD2.includes(n%27))return'Deva';if(gM.includes(n%27))return'Manushya';return'Rakshasa';};
+  const pF={Sun:['Moon','Mars','Jupiter'],Moon:['Sun','Mercury'],Mars:['Sun','Moon','Jupiter'],Mercury:['Sun','Venus'],Jupiter:['Sun','Moon','Mars'],Venus:['Mercury','Saturn'],Saturn:['Mercury','Venus']};
+  const pE={Sun:['Venus','Saturn'],Moon:['Rahu','Ketu'],Mars:['Mercury'],Mercury:['Moon'],Jupiter:['Mercury','Venus'],Venus:['Sun','Moon'],Saturn:['Sun','Moon','Mars']};
+  const aL=RUL[aMSg],bL=RUL[bMSg];
+  const aF=pF[aL]||[],bF=pF[bL]||[],aE=pE[aL]||[],bE=pE[bL]||[];
+  let ms=0;if(aF.includes(bL)&&bF.includes(aL))ms=5;else if(aF.includes(bL)||bF.includes(aL))ms=4;else if(!aE.includes(bL)&&!bE.includes(aL))ms=3;else if(aE.includes(bL)||bE.includes(aL))ms=1;
+  const td=((bMN-aMN+27)%27)+1,tn=td%9||9;
+  const aG=getGa(aMN),bG=getGa(bMN);
+  const gSc=aG===bG?6:((aG==='Deva'&&bG==='Manushya')||(aG==='Manushya'&&bG==='Deva'))?5:0;
+  const sd=((bMSg-aMSg+12)%12)+1,bhS=[6,8,12].includes(sd)?0:7;
+  const aNd=getNd(aMN),bNd=getNd(bMN),ndS=aNd===bNd?0:8;
+  const kutas=[{n:'Tara',s:[1,3,5,7].includes(tn)?3:1,m:3},{n:'Graha Maitri',s:ms,m:5},{n:'Gana',s:gSc,m:6},{n:'Bhakoot',s:bhS,m:7,dosha:bhS===0},{n:'Nadi',s:ndS,m:8,dosha:ndS===0}];
+  const total=kutas.reduce((s,k)=>s+k.s,0);
+  const col=total>=24?'var(--green)':total>=16?'#ff9100':'var(--red)';
+  const vrd=total>=24?'Excellent':total>=16?'Good':'Challenging';
+  document.getElementById('syn-r').innerHTML=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div><div style="font-size:24px;font-weight:700;color:${col};font-family:'JetBrains Mono',monospace">${total}/36</div><div style="font-size:13px;color:var(--text2)">${vrd}</div></div><div style="font-size:12px;color:var(--text3);text-align:right"><div>${an}: ${SIGNS[aMSg]}</div><div>${bn}: ${SIGNS[bMSg]}</div></div></div>${kutas.map(k=>{const pct=Math.round((k.s/k.m)*100);const kc=pct>=75?'var(--green)':pct>=50?'#ff9100':'var(--red)';return`<div class="prow"><div style="font-size:13px">${k.n}${k.dosha?` <span style="font-size:11px;color:var(--red)">⚠</span>`:''}</div><div style="font-size:13px;font-weight:600;color:${kc};font-family:'JetBrains Mono',monospace">${k.s}/${k.m}</div></div>`;}).join('')}</div>`;
+}
+
+// HORARY
+function castHorary(){
+  const lat=S.lat||S.natal?.lat||12.9716,lng=S.lng||S.natal?.lng||77.5946;
+  const hs=document.getElementById('hhs').value,now=new Date();
+  const pos=getPlanets(now),asc=calcAsc(now,lat,lng);
+  const houses=Array.from({length:12},(_,i)=>n360(asc+i*30));
+  S.horary={time:now,pos,asc,lat,lng,houses,hs};
+  const T=(toJD(now)-2451545)/36525;
+  function getHN(lon){for(let i=0;i<12;i++){const nx=houses[(i+1)%12],cu=houses[i];if(cu<=nx){if(lon>=cu&&lon<nx)return i+1;}else{if(lon>=cu||lon<nx)return i+1;}}return 1;}
+  S.horary.getHN=getHN;
+  const ord=['','1st','2nd','3rd','4th','5th','6th','7th','8th','9th','10th','11th','12th'];
+  document.getElementById('h-pl').innerHTML=`<div class="card"><div class="ctitle">${hs.toUpperCase()} — Planets</div><div class="prow"><div class="pname" style="color:var(--green)">⬆ ASC</div><div class="ppos">${SIGNS[gS(asc)]} ${gD(asc).toFixed(1)}° · 1H</div></div>${['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Rahu','Ketu'].map(p=>{if(pos[p]===undefined)return'';const l=pos[p],si=gS(l),dig=getDig(p,si),nak=getNak(l,T),hn=getHN(l);return`<div class="prow"><div class="pname">${PS[p]||p} ${p}</div><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><span class="ppos">${SIGNS[si]} ${gD(l).toFixed(1)}° ${ord[hn]}H</span>${dig.l?`<span class="dig ${dig.c}">${dig.l}</span>`:''}<span style="font-size:10px;color:var(--text3)">${nak.name}</span></div></div>`;}).join('')}</div>`;
+  const asr=RUL[gS(asc)],arp=pos[asr]||0,vc=pos.Moon>=195&&pos.Moon<=225,rad=gD(asc)<3||gD(asc)>27;
+  const mr=[];['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn'].forEach(a=>{['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn'].forEach(b=>{if(a>=b)return;if(RUL[gS(pos[a]||0)]===b&&RUL[gS(pos[b]||0)]===a)mr.push(`${a}↔${b}`);});});
+  S.horary.mr=mr;
+  document.getElementById('h-fc').innerHTML=`<div class="card"><div class="ctitle">Chart Factors</div><div class="fr"><div class="fl2">ASC Ruler</div><div class="fv">${asr} ${SIGNS[gS(arp)]} ${gD(arp).toFixed(1)}°</div></div><div class="fr"><div class="fl2">Moon</div><div class="fv">${SIGNS[gS(pos.Moon)]} ${gD(pos.Moon).toFixed(1)}° — ${getNak(pos.Moon,T).name}</div></div><div class="fr"><div class="fl2">Via Combusta</div><div class="fv ${vc?'b':'g'}">${vc?'YES ⚠':'Clear'}</div></div><div class="fr"><div class="fl2">Radical</div><div class="fv ${rad?'w':'g'}">${rad?'⚠ Early/Late ASC':'Radical ✓'}</div></div>${mr.length?`<div class="fr"><div class="fl2">Mutual Reception</div><div class="fv g">${mr.join(', ')}</div></div>`:''}</div>`;
+}
+
+async function interpHorary(){
+  if(!S.horary)castHorary();
+  if(!S.horary)return;
+  const q=document.getElementById('hq').value.trim()||'(no question)';
+  const res=document.getElementById('h-res');
+  res.innerHTML='<div style="color:var(--text3);font-size:13px;padding:8px">Reading chart...</div>';
+  const {pos,asc,houses,hs,mr,getHN}=S.horary;
+  const T=(toJD(S.horary.time)-2451545)/36525;
+  const ord=['','1st','2nd','3rd','4th','5th','6th','7th','8th','9th','10th','11th','12th'];
+  let cd=`Horary: ${S.horary.time.toLocaleString()}\nHouse: ${hs}\nASC: ${gD(asc).toFixed(1)}° ${SIGNS[gS(asc)]}\n`;
+  Object.entries(pos).forEach(([p,l])=>{const d=getDig(p,gS(l));const hn=getHN?getHN(l):1;cd+=`${p}: ${l.toFixed(1)}° ${SIGNS[gS(l)]} (${d.l||'—'}) ${ord[hn]||hn}H\n`;});
+  cd+=`Via Combusta: ${pos.Moon>=195&&pos.Moon<=225?'YES':''}\n`;
+  if(mr?.length)cd+=`Mutual Reception: ${mr.join(', ')}\n`;
+  try{
+    const interp=await callGroqDirect('You are a master horary astrologer (Lilly tradition). Full analysis: 1) Radical? 2) Significators 3) Key aspects & dignities 4) Moon testimony 5) Receptions 6) Verdict YES/NO/MAYBE with timing. Be direct and confident.',`QUESTION: "${q}"\n\nCHART:\n${cd}`,700);
+    const low=interp.toLowerCase();
+    const vt=low.includes('yes')&&!low.includes('not likely')&&!low.includes('unlikely')?'y':low.includes('unlikely')||low.includes('negative')||low.includes(' no ')?'n':'m';
+    const vl={y:'⚡ YES — Affirmative',n:'✗ NO — Negative',m:'? Uncertain'};
+    res.innerHTML=`<div class="card"><div class="vd ${vt}">${vl[vt]}</div><div style="font-size:13px;line-height:1.75;color:var(--text2)">${fmt(interp)}</div></div>`;
+  }catch(e){res.innerHTML=`<div style="color:var(--red);font-size:13px;padding:8px">Error: ${e.message}</div>`;}
+}
+
+// ===================== FITNESS =====================
+function logMetric(){
+  const w=parseFloat(document.getElementById('mw').value),bf=parseFloat(document.getElementById('mbf').value),n=document.getElementById('mn2').value;
+  if(!w&&!bf){alert('Enter weight or BF%');return;}
+  S.metrics.unshift({date:new Date().toLocaleDateString('en-IN'),ts:Date.now(),weight:w||null,bf:bf||null,notes:n});
+  localStorage.setItem('j_metrics',JSON.stringify(S.metrics));
+  ['mw','mbf','mn2'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  renderFTgt();renderFHist();drawCharts();addSys('Logged.');
+}
+
+function saveTargets(){
+  S.targets.weight=parseFloat(document.getElementById('tw').value)||null;
+  S.targets.bf=parseFloat(document.getElementById('tb').value)||null;
+  localStorage.setItem('j_targets',JSON.stringify(S.targets));
+  renderFTgt();drawCharts();addSys('Targets saved.');
+}
+
+function renderFTgt(){
+  const el=document.getElementById('f-tgt');if(!el)return;
+  const lat=S.metrics[0];if(!lat||(!S.targets.weight&&!S.targets.bf)){el.innerHTML='';return;}
+  let h='<div class="card"><div class="ctitle">Progress to Target</div>';
+  if(S.targets.weight&&lat.weight){const diff=Math.abs(lat.weight-S.targets.weight);const tot=Math.abs((S.metrics[S.metrics.length-1]?.weight||lat.weight)-S.targets.weight)||1;const pct=Math.max(0,Math.min(100,Math.round((1-diff/tot)*100)));const col=lat.weight>S.targets.weight?'var(--red)':'var(--green)';h+=`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span style="color:var(--text2)">Weight</span><span style="color:${col};font-family:'JetBrains Mono',monospace">${lat.weight}kg→${S.targets.weight}kg</span></div><div class="pbar"><div class="pfill" style="width:${pct}%;background:${col}"></div></div></div>`;}
+  if(S.targets.bf&&lat.bf){const diff=Math.abs(lat.bf-S.targets.bf);const tot=Math.abs((S.metrics[S.metrics.length-1]?.bf||lat.bf)-S.targets.bf)||1;const pct=Math.max(0,Math.min(100,Math.round((1-diff/tot)*100)));const col=lat.bf>S.targets.bf?'#ff9100':'var(--green)';h+=`<div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span style="color:var(--text2)">Body Fat</span><span style="color:${col};font-family:'JetBrains Mono',monospace">${lat.bf}%→${S.targets.bf}%</span></div><div class="pbar"><div class="pfill" style="width:${pct}%;background:${col}"></div></div></div>`;}
+  h+='</div>';el.innerHTML=h;
+}
+
+function renderFHist(){
+  const el=document.getElementById('f-hist');if(!el||!S.metrics.length)return;
+  el.innerHTML=`<div class="card"><div class="ctitle">History</div>${S.metrics.slice(0,10).map(m=>`<div class="li"><div class="ldate">${m.date}</div><div>${m.weight?`<div class="lw">${m.weight}kg</div>`:''} ${m.bf?`<div class="lbf">${m.bf}% BF</div>`:''}</div></div>`).join('')}</div>`;
+}
+
+function drawCharts(){
+  setTimeout(()=>{
+    const wd=S.metrics.slice(0,20).reverse().filter(m=>m.weight);
+    const bd=S.metrics.slice(0,20).reverse().filter(m=>m.bf);
+    if(wd.length>=2)drawChart('wch',wd.map(m=>m.weight),wd.map(m=>m.date),'Weight (kg)','#00e676',S.targets.weight);
+    if(bd.length>=2)drawChart('bch',bd.map(m=>m.bf),bd.map(m=>m.date),'Body Fat %','#ff9100',S.targets.bf);
+  },120);
+}
+
+function drawChart(id,data,labels,title,color,target){
+  const cv=document.getElementById(id);if(!cv||data.length<2)return;
+  cv.width=cv.offsetWidth||320;cv.height=120;
+  const ctx=cv.getContext('2d');const W=cv.width,H=cv.height,pad=30;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#111';ctx.fillRect(0,0,W,H);
+  const mn=Math.min(...data)*0.97,mx=Math.max(...data)*1.03;
+  const sx=i=>pad+(i/(data.length-1))*(W-pad*2);
+  const sy=v=>H-pad-((v-mn)/(mx-mn))*(H-pad*2);
+  ctx.strokeStyle='#1a1a1a';ctx.lineWidth=1;
+  for(let i=0;i<3;i++){const y=pad+i*(H-pad*2)/2;ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-pad,y);ctx.stroke();}
+  if(target&&target>=mn&&target<=mx){const ty=sy(target);ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(pad,ty);ctx.lineTo(W-pad,ty);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='9px Inter';ctx.fillText('Target',W-pad-36,ty-3);}
+  ctx.beginPath();ctx.moveTo(sx(0),sy(data[0]));data.forEach((_,i)=>ctx.lineTo(sx(i),sy(data[i])));ctx.lineTo(sx(data.length-1),H-pad);ctx.lineTo(sx(0),H-pad);ctx.fillStyle=color==='#00e676'?'rgba(0,230,118,0.1)':'rgba(255,145,0,0.1)';ctx.fill();
+  ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=2;ctx.setLineDash([]);data.forEach((v,i)=>i===0?ctx.moveTo(sx(i),sy(v)):ctx.lineTo(sx(i),sy(v)));ctx.stroke();
+  data.forEach((v,i)=>{ctx.beginPath();ctx.arc(sx(i),sy(v),3,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();});
+  ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='9px Inter';ctx.fillText(title,pad,11);
+  ctx.font='9px monospace';ctx.fillStyle='rgba(255,255,255,0.6)';ctx.fillText(data[0],sx(0)-4,sy(data[0])-6);
+  ctx.textAlign='right';ctx.fillText(data[data.length-1],sx(data.length-1)+4,sy(data[data.length-1])-6);ctx.textAlign='left';
+}
+
+function initExcRow(){const c=document.getElementById('exc');if(!c)return;c.innerHTML=`<div class="exrow"><input class="ex-n" placeholder="Exercise"/><input class="ex-s" placeholder="Sets"/><input class="ex-s" placeholder="Reps"/><input class="ex-s" placeholder="kg"/></div>`;}
+function addExRow(){const c=document.getElementById('exc');const r=document.createElement('div');r.className='exrow';r.innerHTML=`<input class="ex-n" placeholder="Exercise"/><input class="ex-s" placeholder="Sets"/><input class="ex-s" placeholder="Reps"/><input class="ex-s" placeholder="kg"/>`;c.appendChild(r);}
+
+function logWorkout(){
+  const name=document.getElementById('wn').value||'Session';
+  const rows=document.querySelectorAll('.exrow');
+  const exercises=[];
+  rows.forEach(row=>{const ins=row.querySelectorAll('input');const ex={name:ins[0].value,sets:ins[1].value,reps:ins[2].value,kg:ins[3].value};if(ex.name)exercises.push(ex);});
+  if(!exercises.length){alert('Add at least one exercise');return;}
+  const plN=[];
+  exercises.forEach(ex=>{let prev=null;for(const w of S.workouts){const f=w.exercises.find(e=>e.name.toLowerCase()===ex.name.toLowerCase());if(f){prev=f;break;}}if(prev){const pk=parseFloat(prev.kg)||0,ck=parseFloat(ex.kg)||0;if(ck>pk)plN.push({t:'up',msg:`${ex.name}: ${pk}→${ck}kg PR`});else if(ck<pk)plN.push({t:'down',msg:`${ex.name}: regression`});}});
+  S.workouts.unshift({id:Date.now(),date:new Date().toLocaleDateString('en-IN'),name,exercises,plN});
+  localStorage.setItem('j_workouts',JSON.stringify(S.workouts));
+  document.getElementById('wn').value='';initExcRow();renderWoHist();
+  const prs=plN.filter(p=>p.t==='up');
+  if(prs.length)addJ('PRs: '+prs.map(p=>p.msg).join(', '));
+  addSys('Workout logged.');
+}
+
+function renderWoHist(){
+  const el=document.getElementById('f-wo');if(!el||!S.workouts.length)return;
+  el.innerHTML=`<div class="card"><div class="ctitle">Recent Sessions</div>${S.workouts.slice(0,4).map(w=>`<div class="woc"><div class="wod">${w.date}</div><div class="won">${w.name}</div><div class="woe">${w.exercises.map(e=>`${e.name}: ${e.sets}×${e.reps} @${e.kg}kg`).join('<br>')}</div>${w.plN?.filter(p=>p.t==='up').length?`<div style="margin-top:4px">${w.plN.filter(p=>p.t==='up').map(p=>`<span class="prbadge">${p.msg}</span>`).join('')}</div>`:''}</div>`).join('')}</div>`;
+}
+
+async function fitAsk(){
+  const q=document.getElementById('fq').value.trim();if(!q||!S.groqKey)return;
+  const ans=document.getElementById('f-ans');ans.style.display='block';ans.innerHTML='<div style="color:var(--text3);font-size:13px;padding:8px">Analyzing...</div>';
+  const rec=S.metrics.slice(0,8).map(m=>`${m.date}: ${m.weight||'?'}kg ${m.bf||'?'}%BF`).join('\n');
+  const wos=S.workouts.slice(0,3).map(w=>`${w.date} ${w.name}: ${w.exercises.map(e=>`${e.name} ${e.sets}x${e.reps}@${e.kg}kg`).join(', ')}`).join('\n');
+  try{const r=await callGroqDirect('Body recomposition and strength expert. Direct and science-based.',`Targets: ${S.targets.weight||'?'}kg ${S.targets.bf||'?'}%BF\nMetrics:\n${rec}\nWorkouts:\n${wos}\n${S.profile?'User: '+S.profile:''}\n\nQuestion: ${q}`,400);ans.innerHTML=`<div class="abox">${fmt(r)}</div>`;}
+  catch(e){ans.innerHTML=`<div style="color:var(--red);font-size:13px">${e.message}</div>`;}
+}
+
+// ===================== COUNCIL =====================
+const CM={
+  analyst:{n:'The Analyst',ico:'🔵',desc:'Cold logic · No emotion',col:'#64b4ff',p:'You are The Analyst — pure cold logic, no emotion, only data and pattern recognition. Be direct and brutally rational.'},
+  shadow:{n:'The Shadow',ico:'🖤',desc:'Jungian depth · Dark truths',col:'#b044ff',p:'You are The Shadow — Jungian advisor. Speak to hidden motivations, repressed drives, shadow elements. Unflinching.'},
+  unhinged:{n:'The Unhinged',ico:'🔴',desc:'Chaos · No filter',col:'#ff1744',p:'You are The Unhinged — chaos agent. Wildly contrarian, darkly funny, zero filter. Say what nobody else will.'},
+  oracle:{n:'The Oracle',ico:'🟡',desc:'Astro · Mystical · Symbolic',col:'#ffd700',p:'You are The Oracle — interpret through astrology, archetypes, cosmic patterns. Evocative and precise.'},
+  seducer:{n:'The Seducer',ico:'🩷',desc:'Desire · Power · Instinct',col:'#ff6eb4',p:'You are The Seducer — voice of desire, power dynamics, primal instinct. Unflinching about human desire. No moralizing.'}
+};
+
+async function summonCouncil(){
+  const q=document.getElementById('cq').value.trim();if(!q||!S.groqKey)return;
+  const body=document.getElementById('cbdy');
+  body.innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:24px;color:var(--text3)"><div class="typbub on" style="position:static;background:transparent;border:none"><div class="td"></div><div class="td"></div><div class="td"></div></div>Convening...</div>`;
+  try{
+    const pick=await callGroqDirect('Pick 2-3 most relevant council members: analyst, shadow, unhinged, oracle, seducer. Seducer only if explicitly romantic/sexual and OR available: '+!!S.orKey+'. Respond ONLY with a JSON array like ["analyst","shadow"]. Nothing else.','Question: "'+q+'"',50);
+    let chosen=['analyst','shadow'];
+    try{const m=pick.match(/\[.*?\]/s);if(m)chosen=JSON.parse(m[0]);}catch(e){}
+    chosen=chosen.filter(id=>id in CM&&(id!=='seducer'||S.orKey));
+    if(!chosen.length)chosen=['analyst','shadow'];
+
+    const results=await Promise.allSettled(chosen.map(async id=>{
+      const m=CM[id];const isS=id==='seducer';
+      let resp;
+      if(isS&&S.orKey){const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.orKey,'HTTP-Referer':location.href,'X-Title':'JARVIS'},body:JSON.stringify({model:S.orModel,messages:[{role:'system',content:m.p+(S.profile?'\nUser: '+S.profile:'')},{role:'user',content:q}],max_tokens:350,temperature:0.9})});if(!r.ok)throw new Error('OR failed');resp=(await r.json()).choices[0].message.content;}
+      else{resp=await callGroqDirect(m.p+(S.profile?'\nUser: '+S.profile:''),q,350);}
+      return{id,m,resp};
+    }));
+
+    const ok=results.filter(r=>r.status==='fulfilled').map(r=>r.value);
+    const synCtx=ok.map(r=>`${r.m.n}: ${r.resp}`).join('\n\n');
+    const synth=await callGroqDirect('You are Jarvis synthesizing council input. 2-3 sharp sentences. Direct.','Question: "'+q+'"\n\nCouncil:\n'+synCtx,150);
+
+    body.innerHTML=ok.map(r=>`<div class="mc2"><div class="mh2"><span style="font-size:18px">${r.m.ico}</span><div><div class="mn2" style="color:${r.m.col}">${r.m.n}</div><div class="mt2">${r.m.desc}</div></div></div><div class="mb2">${fmt(r.resp)}</div></div>`).join('')+`<div class="scard"><div class="slbl">⚡ Jarvis Synthesis</div><div class="stxt">${fmt(synth)}</div></div>`;
+  }catch(err){body.innerHTML=`<div style="padding:20px;color:var(--red);font-size:14px">Error: ${err.message}</div>`;}
+}
+</script>
+</body>
+</html>
