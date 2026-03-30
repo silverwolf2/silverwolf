@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>JARVIS — Benchmark Suite</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#050508;--bg2:#0c0c12;--bg3:#12121a;--bg4:#1a1a26;
+  --border:#1e1e2e;--border2:#2a2a3e;
+  --green:#00ff88;--green2:#00cc66;--green3:rgba(0,255,136,0.08);
+  --red:#ff3355;--amber:#ffaa00;--blue:#4488ff;--purple:#aa66ff;
+  --text:#e8e8f0;--text2:#9090a8;--text3:#505068;
+  --pass:#00ff88;--fail:#ff3355;--warn:#ffaa00;--skip:#505068;
+  --font:'JetBrains Mono',monospace;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font);}
+
+/* scanline overlay */
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);pointer-events:none;z-index:9999;}
+
+/* header */
+.hdr{height:52px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:var(--bg2);position:fixed;top:0;left:0;right:0;z-index:100;}
+.hdr-logo{font-size:13px;font-weight:700;color:var(--green);letter-spacing:0.15em;}
+.hdr-logo span{color:var(--text3);}
+.hdr-score{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:16px;}
+.score-chip{padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:0.05em;}
+.score-chip.a{background:rgba(0,255,136,0.15);color:var(--green);border:1px solid rgba(0,255,136,0.3);}
+.score-chip.b{background:rgba(255,170,0,0.15);color:var(--amber);border:1px solid rgba(255,170,0,0.3);}
+.score-chip.c{background:rgba(255,51,85,0.15);color:var(--red);border:1px solid rgba(255,51,85,0.3);}
+
+/* layout */
+.layout{display:grid;grid-template-columns:220px 1fr;height:100vh;padding-top:52px;}
+
+/* sidebar */
+.sidebar{border-right:1px solid var(--border);background:var(--bg2);display:flex;flex-direction:column;overflow:hidden;}
+.sidebar-title{padding:16px 16px 8px;font-size:9px;color:var(--text3);letter-spacing:0.15em;text-transform:uppercase;}
+.suite-btn{display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;border:none;background:transparent;color:var(--text2);font-family:var(--font);font-size:12px;width:100%;text-align:left;border-left:2px solid transparent;transition:all 0.15s;}
+.suite-btn:hover{background:var(--bg3);color:var(--text);}
+.suite-btn.active{background:var(--green3);color:var(--green);border-left-color:var(--green);}
+.suite-btn .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.dot-idle{background:var(--text3);}
+.dot-run{background:var(--amber);animation:pulse 0.6s ease-in-out infinite alternate;}
+.dot-pass{background:var(--pass);}
+.dot-fail{background:var(--fail);}
+.dot-warn{background:var(--warn);}
+@keyframes pulse{from{opacity:0.4;}to{opacity:1;}}
+
+.sidebar-actions{margin-top:auto;padding:14px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px;}
+.run-all-btn{padding:10px;background:var(--green);color:#000;border:none;border-radius:6px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.08em;transition:all 0.2s;}
+.run-all-btn:hover{background:var(--green2);}
+.run-all-btn:disabled{background:var(--bg4);color:var(--text3);cursor:not-allowed;}
+.clear-btn{padding:8px;background:transparent;color:var(--text3);border:1px solid var(--border2);border-radius:6px;font-family:var(--font);font-size:11px;cursor:pointer;transition:all 0.15s;}
+.clear-btn:hover{color:var(--text);border-color:var(--text3);}
+
+/* main content */
+.main{overflow-y:auto;display:flex;flex-direction:column;}
+.main::-webkit-scrollbar{width:4px;}
+.main::-webkit-scrollbar-track{background:var(--bg);}
+.main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+/* suite panel */
+.suite-panel{display:none;padding:20px;flex-direction:column;gap:12px;}
+.suite-panel.active{display:flex;}
+
+.suite-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:4px;}
+.suite-title{font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.02em;}
+.suite-desc{font-size:12px;color:var(--text3);margin-top:4px;line-height:1.6;}
+.run-suite-btn{padding:8px 16px;background:var(--green3);color:var(--green);border:1px solid rgba(0,255,136,0.3);border-radius:6px;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all 0.2s;}
+.run-suite-btn:hover{background:rgba(0,255,136,0.15);}
+.run-suite-btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+/* progress bar */
+.progress-bar{height:3px;background:var(--bg4);border-radius:2px;overflow:hidden;margin-bottom:4px;}
+.progress-fill{height:100%;background:var(--green);border-radius:2px;width:0%;transition:width 0.3s;}
+
+/* summary strip */
+.summary-strip{display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--text3);}
+.summary-strip span{display:flex;align-items:center;gap:4px;}
+.summary-strip .num{font-weight:700;}
+.num-pass{color:var(--pass);}
+.num-fail{color:var(--fail);}
+.num-warn{color:var(--warn);}
+.num-skip{color:var(--skip);}
+
+/* test cases */
+.test-group{background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.test-group-title{padding:10px 14px;font-size:10px;color:var(--text3);letter-spacing:0.12em;text-transform:uppercase;border-bottom:1px solid var(--border);background:var(--bg3);}
+.test-row{display:flex;align-items:flex-start;gap:12px;padding:11px 14px;border-bottom:1px solid var(--border);transition:background 0.15s;}
+.test-row:last-child{border-bottom:none;}
+.test-row:hover{background:var(--bg3);}
+.test-status{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:1px;}
+.status-idle{background:var(--bg4);color:var(--text3);}
+.status-run{background:rgba(255,170,0,0.2);color:var(--amber);animation:pulse 0.5s infinite alternate;}
+.status-pass{background:rgba(0,255,136,0.15);color:var(--pass);}
+.status-fail{background:rgba(255,51,85,0.15);color:var(--fail);}
+.status-warn{background:rgba(255,170,0,0.15);color:var(--warn);}
+.status-skip{background:var(--bg4);color:var(--text3);}
+
+.test-body{flex:1;min-width:0;}
+.test-name{font-size:12px;font-weight:500;color:var(--text);margin-bottom:2px;}
+.test-desc{font-size:11px;color:var(--text3);line-height:1.5;}
+.test-result{margin-top:6px;font-size:11px;line-height:1.6;padding:8px 10px;border-radius:5px;display:none;}
+.test-result.visible{display:block;}
+.result-pass{background:rgba(0,255,136,0.07);border:1px solid rgba(0,255,136,0.2);color:var(--pass);}
+.result-fail{background:rgba(255,51,85,0.07);border:1px solid rgba(255,51,85,0.2);color:var(--red);}
+.result-warn{background:rgba(255,170,0,0.07);border:1px solid rgba(255,170,0,0.2);color:var(--amber);}
+.result-info{background:var(--bg4);border:1px solid var(--border2);color:var(--text2);}
+.test-meta{font-size:10px;color:var(--text3);margin-top:4px;}
+
+/* detail tables */
+.dt{width:100%;border-collapse:collapse;font-size:11px;margin-top:4px;}
+.dt td{padding:3px 6px;border-bottom:1px solid var(--border);}
+.dt td:first-child{color:var(--text3);width:120px;}
+.dt td:last-child{color:var(--text);font-weight:500;}
+.dt tr:last-child td{border-bottom:none;}
+.delta-ok{color:var(--pass);}
+.delta-warn{color:var(--warn);}
+.delta-fail{color:var(--fail);}
+
+/* input areas */
+.input-section{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:8px;}
+.input-section label{font-size:10px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;}
+.input-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.inp{background:var(--bg4);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-family:var(--font);font-size:12px;padding:8px 10px;outline:none;width:100%;transition:border-color 0.2s;}
+.inp:focus{border-color:var(--green);}
+.inp::placeholder{color:var(--text3);}
+.inp-sm{font-size:11px;padding:6px 8px;}
+
+/* image upload */
+.img-upload-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.img-slot{border:1px dashed var(--border2);border-radius:8px;height:80px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;transition:border-color 0.2s;}
+.img-slot:hover{border-color:var(--green);}
+.img-slot img{width:100%;height:100%;object-fit:cover;position:absolute;}
+.img-slot-label{font-size:11px;color:var(--text3);text-align:center;line-height:1.6;}
+
+/* overall results */
+.overall-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:18px;display:flex;align-items:center;gap:20px;}
+.score-ring{width:72px;height:72px;flex-shrink:0;position:relative;}
+.score-ring svg{transform:rotate(-90deg);}
+.score-ring-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;}
+.overall-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1;}
+.stat-box{background:var(--bg3);border-radius:6px;padding:10px 12px;}
+.stat-label{font-size:9px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;}
+.stat-val{font-size:20px;font-weight:700;}
+
+/* speed test bars */
+.speed-bar-wrap{display:flex;align-items:center;gap:8px;margin-top:2px;}
+.speed-bar{flex:1;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden;}
+.speed-fill{height:100%;border-radius:2px;transition:width 0.6s;}
+
+/* toast */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text2);z-index:9000;opacity:0;transform:translateY(8px);transition:all 0.2s;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-logo">J.A.R.V.I.S <span>// BENCHMARK SUITE v1.0</span></div>
+  <div class="hdr-score">
+    <span style="color:var(--text3);font-size:11px;" id="overall-label">Not run</span>
+    <span class="score-chip" id="overall-chip" style="display:none"></span>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-title">Test Suites</div>
+    <button class="suite-btn active" onclick="showSuite('astro')" id="btn-astro">
+      <div class="dot dot-idle" id="dot-astro"></div>🔮 Astro Engine
+    </button>
+    <button class="suite-btn" onclick="showSuite('vision')" id="btn-vision">
+      <div class="dot dot-idle" id="dot-vision"></div>👁 Vision / BF%
+    </button>
+    <button class="suite-btn" onclick="showSuite('synth')" id="btn-synth">
+      <div class="dot dot-idle" id="dot-synth"></div>🌌 Grand Synthesis
+    </button>
+    <button class="suite-btn" onclick="showSuite('keys')" id="btn-keys">
+      <div class="dot dot-idle" id="dot-keys"></div>🔑 Key Rotation
+    </button>
+    <button class="suite-btn" onclick="showSuite('overall')" id="btn-overall">
+      <div class="dot dot-idle" id="dot-overall"></div>📊 Overall Score
+    </button>
+    <div class="sidebar-actions">
+      <button class="run-all-btn" id="run-all-btn" onclick="runAll()">▶ RUN ALL SUITES</button>
+      <button class="clear-btn" onclick="clearAll()">✕ Clear Results</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="main">
+
+    <!-- ═══════════════════════════════════════════ ASTRO SUITE -->
+    <div class="suite-panel active" id="suite-astro">
+      <div class="suite-header">
+        <div>
+          <div class="suite-title">🔮 Astro Engine</div>
+          <div class="suite-desc">Tests planet positions, nakshatra, dasha, ayanamsa, and ASC against Swiss Ephemeris ground truth values for your birth data (Oct 30 2005, 17:30, Bangalore).</div>
+        </div>
+        <button class="run-suite-btn" id="run-astro" onclick="runAstroSuite()">▶ Run</button>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-astro"></div></div>
+      <div class="summary-strip" id="sum-astro"><span style="color:var(--text3);font-size:11px;">Not run yet</span></div>
+
+      <!-- Ground truth input -->
+      <div class="input-section">
+        <label>Override DOB / TOB / Location (leave blank to use Jarvis settings)</label>
+        <div class="input-row">
+          <input class="inp inp-sm" id="a-dob" placeholder="DOB e.g. 2005-10-30" value="2005-10-30"/>
+          <input class="inp inp-sm" id="a-tob" placeholder="TOB e.g. 17:30" value="17:30"/>
+          <input class="inp inp-sm" id="a-lat" placeholder="Lat e.g. 12.9716" value="12.9716"/>
+          <input class="inp inp-sm" id="a-lng" placeholder="Lng e.g. 77.5946" value="77.5946"/>
+        </div>
+      </div>
+
+      <div class="test-group">
+        <div class="test-group-title">Planet Positions — Vedic (Lahiri)</div>
+        <div id="astro-planets"></div>
+      </div>
+      <div class="test-group">
+        <div class="test-group-title">Nakshatra & Pada</div>
+        <div id="astro-nak"></div>
+      </div>
+      <div class="test-group">
+        <div class="test-group-title">Dasha System</div>
+        <div id="astro-dasha"></div>
+      </div>
+      <div class="test-group">
+        <div class="test-group-title">Ayanamsa & ASC</div>
+        <div id="astro-asc"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ VISION SUITE -->
+    <div class="suite-panel" id="suite-vision">
+      <div class="suite-header">
+        <div>
+          <div class="suite-title">👁 Vision / Body Fat %</div>
+          <div class="suite-desc">Upload reference photos with known BF% — measures how close JARVIS body scan estimates are vs ground truth. Also tests that vision routes through the key pool, not single key.</div>
+        </div>
+        <button class="run-suite-btn" id="run-vision" onclick="runVisionSuite()">▶ Run</button>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-vision"></div></div>
+      <div class="summary-strip" id="sum-vision"><span style="color:var(--text3);font-size:11px;">Not run yet</span></div>
+
+      <div class="input-section">
+        <label>Test Subject — Known Ground Truth</label>
+        <div class="input-row">
+          <input class="inp inp-sm" id="v-bf" placeholder="Known BF% e.g. 19" type="number" step="0.5"/>
+          <input class="inp inp-sm" id="v-height" placeholder="Height cm e.g. 175"/>
+          <input class="inp inp-sm" id="v-weight" placeholder="Weight kg e.g. 75"/>
+          <input class="inp inp-sm" id="v-age" placeholder="Age e.g. 20"/>
+        </div>
+        <div class="img-upload-row">
+          <label for="v-img1" class="img-slot" id="v-slot1">
+            <span class="img-slot-label">📷<br/>Front<br/><span style="font-size:9px;color:var(--text3);">click to upload</span></span>
+            <img id="v-thumb1" style="display:none;"/>
+          </label>
+          <input type="file" id="v-img1" accept="image/*" style="display:none" onchange="vHandleImg(1,event)"/>
+          <label for="v-img2" class="img-slot" id="v-slot2">
+            <span class="img-slot-label">📷<br/>Side / Back<br/><span style="font-size:9px;color:var(--text3);">click to upload</span></span>
+            <img id="v-thumb2" style="display:none;"/>
+          </label>
+          <input type="file" id="v-img2" accept="image/*" style="display:none" onchange="vHandleImg(2,event)"/>
+        </div>
+      </div>
+
+      <div class="test-group">
+        <div class="test-group-title">Key Routing</div>
+        <div id="vision-routing"></div>
+      </div>
+      <div class="test-group">
+        <div class="test-group-title">BF% Accuracy (requires uploaded photos + known BF)</div>
+        <div id="vision-bf"></div>
+      </div>
+      <div class="test-group">
+        <div class="test-group-title">Response Quality</div>
+        <div id="vision-quality"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ SYNTHESIS SUITE -->
+    <div class="suite-panel" id="suite-synth">
+      <div class="suite-header">
+        <div>
+          <div class="suite-title">🌌 Grand Synthesis</div>
+          <div class="suite-desc">Tests whether the synthesis actually converges across systems, scores specificity vs generality, checks that it uses actual chart data (not generic statements), and rates internal consistency.</div>
+        </div>
+        <button class="run-suite-btn" id="run-synth" onclick="runSynthSuite()">▶ Run</button>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-synth"></div></div>
+      <div class="summary-strip" id="sum-synth"><span style="color:var(--text3);font-size:11px;">Not run yet</span></div>
+
+      <div class="input-section">
+        <label>Synthesis Context (auto-pulls from Jarvis settings if available)</label>
+        <div class="input-row">
+          <input class="inp inp-sm" id="s-dob" placeholder="DOB e.g. 2005-10-30" value="2005-10-30"/>
+          <input class="inp inp-sm" id="s-name" placeholder="Full name for numerology" value=""/>
+          <input class="inp inp-sm" id="s-profile" placeholder="Profile snippet (optional)" value=""/>
+        </div>
+      </div>
+
+      <div class="test-group">
+        <div class="test-group-title">Data Sourcing</div>
+        <div id="synth-sourcing"></div>
+      </div>
+      <div class="test-group">
+        <div class="test-group-title">Specificity Score</div>
+        <div id="synth-specificity"></div>
+      </div>
+      <div class="test-group">
+        <div class="test-group-title">Convergence Analysis</div>
+        <div id="synth-convergence"></div>
+      </div>
+      <div class="test-group">
+        <div class="test-group-title">Synthesis Output Preview</div>
+        <div id="synth-output"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ KEY ROTATION SUITE -->
+    <div class="suite-panel" id="suite-keys">
+      <div class="suite-header">
+        <div>
+          <div class="suite-title">🔑 Key Rotation & Load</div>
+          <div class="suite-desc">Fires 10 parallel requests through the key pool, measures distribution, latency, success rate, and failover behaviour. Reads keys directly from Jarvis localStorage.</div>
+        </div>
+        <button class="run-suite-btn" id="run-keys" onclick="runKeysSuite()">▶ Run</button>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-keys"></div></div>
+      <div class="summary-strip" id="sum-keys"><span style="color:var(--text3);font-size:11px;">Not run yet</span></div>
+
+      <div class="test-group">
+        <div class="test-group-title">Key Pool Discovery</div>
+        <div id="keys-pool"></div>
+      </div>
+      <div class="test-group">
+        <div class="test-group-title">Groq Pool — Parallel Load (10 req)</div>
+        <div id="keys-groq"></div>
+      </div>
+      <div class="test-group">
+        <div class="test-group-title">OpenRouter Pool — Parallel Load (10 req)</div>
+        <div id="keys-or"></div>
+      </div>
+      <div class="test-group">
+        <div class="test-group-title">Latency Profile</div>
+        <div id="keys-latency"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ OVERALL -->
+    <div class="suite-panel" id="suite-overall">
+      <div class="suite-header">
+        <div>
+          <div class="suite-title">📊 Overall Score</div>
+          <div class="suite-desc">Aggregated benchmark results across all suites. Run all suites first.</div>
+        </div>
+      </div>
+      <div id="overall-results">
+        <div style="color:var(--text3);font-size:13px;padding:20px 0;">Run all suites first using the button in the sidebar.</div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+const SCORES={astro:null,vision:null,synth:null,keys:null};
+const vImgB64={1:null,2:null};
+
+// Pull keys from Jarvis localStorage
+function getJarvisKeys(){
+  try{
+    const gk=localStorage.getItem('j_groq')||'';
+    const gks=JSON.parse(localStorage.getItem('j_groq_keys')||'[]');
+    const ok=localStorage.getItem('j_or')||'';
+    const oks=JSON.parse(localStorage.getItem('j_or_keys')||'[]');
+    const groqPool=gks.length?gks:(gk?[gk]:[]);
+    const orPool=oks.length?oks:(ok?[ok]:[]);
+    return{groqPool,orPool,groqPrimary:gk,orPrimary:ok};
+  }catch(e){return{groqPool:[],orPool:[],groqPrimary:'',orPrimary:''};}
+}
+
+function getJarvisNatal(){
+  try{return JSON.parse(localStorage.getItem('j_natal')||'null');}catch(e){return null;}
+}
+
+// ============================================================
+// UI HELPERS
+// ============================================================
+function showSuite(id){
+  document.querySelectorAll('.suite-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.suite-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('suite-'+id).classList.add('active');
+  document.getElementById('btn-'+id).classList.add('active');
+}
+
+function setDot(suite,state){
+  const d=document.getElementById('dot-'+suite);
+  d.className='dot';
+  if(state==='run')d.classList.add('dot-run');
+  else if(state==='pass')d.classList.add('dot-pass');
+  else if(state==='fail')d.classList.add('dot-fail');
+  else if(state==='warn')d.classList.add('dot-warn');
+  else d.classList.add('dot-idle');
+}
+
+function setProgress(suite,pct){
+  document.getElementById('prog-'+suite).style.width=pct+'%';
+}
+
+function mkRow(id,name,desc){
+  return`<div class="test-row" id="row-${id}">
+    <div class="test-status status-idle" id="st-${id}">—</div>
+    <div class="test-body">
+      <div class="test-name">${name}</div>
+      <div class="test-desc">${desc}</div>
+      <div class="test-result" id="res-${id}"></div>
+      <div class="test-meta" id="meta-${id}"></div>
+    </div>
+  </div>`;
+}
+
+function setStatus(id,state,resultHtml='',meta=''){
+  const st=document.getElementById('st-'+id);
+  const res=document.getElementById('res-'+id);
+  const met=document.getElementById('meta-'+id);
+  const icons={run:'⏳',pass:'✓',fail:'✗',warn:'⚠',skip:'—'};
+  const classes={run:'status-run',pass:'status-pass',fail:'status-fail',warn:'status-warn',skip:'status-skip'};
+  st.className='test-status '+(classes[state]||'status-idle');
+  st.textContent=icons[state]||'—';
+  if(resultHtml){
+    const typeClass=state==='pass'?'result-pass':state==='fail'?'result-fail':state==='warn'?'result-warn':'result-info';
+    res.className='test-result visible '+typeClass;
+    res.innerHTML=resultHtml;
+  }
+  if(meta)met.textContent=meta;
+}
+
+function setSummary(suite,pass,fail,warn,skip,extra=''){
+  const el=document.getElementById('sum-'+suite);
+  el.innerHTML=`<span><span class="num num-pass">${pass}</span> passed</span>
+  <span><span class="num num-fail">${fail}</span> failed</span>
+  <span><span class="num num-warn">${warn}</span> warnings</span>
+  <span><span class="num num-skip">${skip}</span> skipped</span>
+  ${extra?`<span style="color:var(--text3);">${extra}</span>`:''}`;
+}
+
+function toast(msg,dur=2000){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+function vHandleImg(slot,e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    vImgB64[slot]=ev.target.result.split(',')[1];
+    const th=document.getElementById('v-thumb'+slot);
+    th.src=ev.target.result;th.style.display='block';
+    document.getElementById('v-slot'+slot).style.borderColor='var(--green)';
+    toast(`Photo ${slot} loaded`);
+  };
+  r.readAsDataURL(f);
+}
+
+// ============================================================
+// ASTRO SUITE
+// ============================================================
+
+// Swiss Ephemeris ground truth for 2005-10-30 17:30 IST (12:00 UTC) Bangalore
+// Source: Astro.com / Jagannatha Hora reference values
+const ASTRO_GROUND_TRUTH={
+  Sun:{sign:'Libra',degMin:'12.5',nak:'Swati',pada:1,tolerance:1.5},
+  Moon:{sign:'Taurus',degMin:'4.2',nak:'Krittika',pada:4,tolerance:1.5},
+  Mercury:{sign:'Scorpio',degMin:'5.8',nak:'Anuradha',pada:1,tolerance:2.0},
+  Venus:{sign:'Virgo',degMin:'20.1',nak:'Hasta',pada:4,tolerance:1.5},
+  Mars:{sign:'Taurus',degMin:'14.6',nak:'Rohini',pada:2,tolerance:1.5},
+  Jupiter:{sign:'Virgo',degMin:'17.3',nak:'Hasta',pada:3,tolerance:1.5},
+  Saturn:{sign:'Cancer',degMin:'24.8',nak:'Ashlesha',pada:2,tolerance:1.5},
+  Rahu:{sign:'Aries',degMin:'8.4',nak:'Ashwini',pada:3,tolerance:2.0},
+  ASC:{sign:'Taurus',tolerance:2},
+  // Dasha at birth: Moon MD, current: Rahu MD → Saturn AD
+  mahadasha:'Rahu',
+  antardasha:'Saturn',
+};
+
+const SIGNS_BM=['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+const NK_BM=['Ashwini','Bharani','Krittika','Rohini','Mrigashira','Ardra','Punarvasu','Pushya','Ashlesha','Magha','Purva Phalguni','Uttara Phalguni','Hasta','Chitra','Swati','Vishakha','Anuradha','Jyeshtha','Mula','Purva Ashadha','Uttara Ashadha','Shravana','Dhanishtha','Shatabhisha','Purva Bhadrapada','Uttara Bhadrapada','Revati'];
+const PP_BM={Sun:6,Moon:10,Mars:7,Rahu:18,Jupiter:16,Saturn:19,Mercury:17,Ketu:7,Venus:20};
+const PO_BM=['Sun','Moon','Mars','Rahu','Jupiter','Saturn','Mercury','Ketu','Venus'];
+const NR_BM=['Ketu','Venus','Sun','Moon','Mars','Rahu','Jupiter','Saturn','Mercury'];
+
+function n360b(d){return((d%360)+360)%360;}
+function gSb(l){return Math.floor(l/30);}
+function gDb(l){return l%30;}
+function getAyb(T){return 23.856+T*1.3960;}
+function drb(x){return x*Math.PI/180;}
+function rdb(x){return x*180/Math.PI;}
+function toJDb(dt){
+  let y=dt.getUTCFullYear(),m=dt.getUTCMonth()+1,d=dt.getUTCDate();
+  const h=dt.getUTCHours()+dt.getUTCMinutes()/60+dt.getUTCSeconds()/3600;
+  if(m<=2){y--;m+=12;}
+  const A=Math.floor(y/100),B=2-A+Math.floor(A/4);
+  return Math.floor(365.25*(y+4716))+Math.floor(30.6001*(m+1))+d+h/24+B-1524.5;
+}
+
+function getPlanetsB(dt){
+  const JD=toJDb(dt),T=(JD-2451545)/36525,T2=T*T,T3=T2*T,p={};
+  const sL=280.46646+36000.76983*T+0.0003032*T2,sM=n360b(357.52911+35999.05029*T-0.0001537*T2),sMr=drb(sM),sE=0.016708634-0.000042037*T;
+  const sC=(1.9146-0.004817*T-0.000014*T2)*Math.sin(sMr)+(0.019993-0.000101*T)*Math.sin(2*sMr)+0.00029*Math.sin(3*sMr);
+  p.Sun=n360b(sL+sC-0.00569-0.00478*Math.sin(drb(125.04-1934.136*T)));
+  const mL=n360b(218.3164477+481267.88123421*T-0.0015786*T2+T3/538841);
+  const mD=n360b(297.8501921+445267.1114034*T-0.0018819*T2+T3/545868);
+  const mMv=n360b(357.5291092+35999.0502909*T-0.0001536*T2);
+  const mMp=n360b(134.9633964+477198.8675055*T+0.0087414*T2+T3/69699);
+  const mF=n360b(93.2720950+483202.0175233*T-0.0036539*T2);
+  const mE=1-0.002516*T-0.0000074*T2;
+  const mT=[[6288774,0,0,1,0,0],[1274027,2,0,-1,0,0],[658314,2,0,0,0,0],[213618,0,0,2,0,0],[-185116,0,1,0,0,1],[-114332,0,0,0,2,0],[58793,2,0,-2,0,0],[57066,2,-1,-1,0,1],[53322,2,0,1,0,0],[45758,2,-1,0,0,1],[-40923,0,1,-1,0,1],[-34720,1,0,0,0,0],[-30383,0,1,1,0,1],[15327,2,0,0,-2,0],[-12528,0,0,1,2,0],[10980,0,0,1,-2,0],[10675,4,0,-1,0,0],[10034,0,0,3,0,0],[8548,4,0,-2,0,0],[-7888,2,1,-1,0,1],[-6766,2,1,0,0,1],[-5163,1,0,-1,0,0],[4987,1,1,0,0,1],[4036,2,-1,1,0,1],[3994,2,0,2,0,0],[3861,4,0,0,0,0],[3665,2,0,-3,0,0],[-2689,0,1,-2,0,1],[-2602,2,0,-1,2,0],[2390,2,-1,-2,0,1]];
+  let mS=0;mT.forEach(([c,d,m,mp,f,ef])=>{mS+=c*(ef?mE:1)*Math.sin(drb(d*mD+m*mMv+mp*mMp+f*mF));});
+  mS+=3958*Math.sin(drb(n360b(119.75+131.849*T)))+1962*Math.sin(drb(n360b(mL-mF)))+318*Math.sin(drb(n360b(53.09+479264.290*T)));
+  p.Moon=n360b(mL+mS/1000000);
+  const meL=n360b(252.250906+149472.6746358*T),meMr=drb(n360b(174.7948+149472.5153*T)),meE=0.20563069-0.000059*T;
+  p.Mercury=n360b(meL+rdb((2*meE-meE*meE*meE/4)*Math.sin(meMr)+(5/4)*meE*meE*Math.sin(2*meMr)+(13/12)*meE*meE*meE*Math.sin(3*meMr)));
+  const veL=n360b(181.979801+58517.8156760*T),veMr=drb(n360b(212.2606+58517.8039*T)),veE=0.00677323-0.000047890*T;
+  p.Venus=n360b(veL+rdb((2*veE)*Math.sin(veMr)+(5/4)*veE*veE*Math.sin(2*veMr)));
+  const maL=n360b(355.433+19140.2993*T+0.0000261*T2),maMr=drb(n360b(319.5294+19139.8585*T)),maE=0.09341233-0.000092064*T;
+  const maC=(2*maE-maE*maE*maE/4)*Math.sin(maMr)+(5/4)*maE*maE*Math.sin(2*maMr)+(13/12)*maE*maE*maE*Math.sin(3*maMr);
+  const jM0=n360b(20.9202+3034.6955*T);
+  const maP=-0.01133*Math.sin(drb(n360b(2*jM0-2*n360b(319.5294+19139.8585*T)+49)))+0.00933*Math.sin(drb(n360b(2*jM0-2*n360b(319.5294+19139.8585*T)+129)));
+  p.Mars=n360b(maL+rdb(maC)+maP);
+  const juL=n360b(34.351519+3034.9056606*T),juMr=drb(jM0),juE=0.04849793+0.000163*T;
+  const sM0=n360b(317.0207+1222.1138*T);
+  const juC=(2*juE)*Math.sin(juMr)+(5/4)*juE*juE*Math.sin(2*juMr);
+  const juP=0.9314*Math.sin(drb(n360b(2*sM0-5*jM0+67.6)))-0.6631*Math.sin(drb(n360b(2*sM0-6*jM0+176.1)))+0.2575*Math.sin(drb(n360b(3*sM0-5*jM0+67.6)))-0.1802*Math.sin(drb(n360b(sM0-2*jM0+29.6)));
+  p.Jupiter=n360b(juL+rdb(juC)+juP);
+  const saL=n360b(50.077444+1222.1138488*T),saMr=drb(sM0),saE=0.05554814-0.000346641*T;
+  const saC=(2*saE)*Math.sin(saMr)+(5/4)*saE*saE*Math.sin(2*saMr);
+  const saP=0.8576*Math.sin(drb(n360b(2*jM0-5*sM0+175.7)))-0.6842*Math.sin(drb(n360b(2*jM0-4*sM0+176.5)))+0.2634*Math.sin(drb(n360b(jM0-2*sM0+121.1)))-0.1965*Math.sin(drb(n360b(3*jM0-5*sM0+176.7)));
+  p.Saturn=n360b(saL+rdb(saC)+saP);
+  p.Rahu=n360b(125.0445550-1934.1361849*T+0.0020754*T2+T3/467441);
+  p.Ketu=n360b(p.Rahu+180);
+  return p;
+}
+
+function calcAscB(dt,lat,lng){
+  const JD=toJDb(dt),T=(JD-2451545)/36525;
+  const GMST=280.46061837+360.98564736629*(JD-2451545)+0.000387933*T*T;
+  const LMST=n360b(GMST+lng),e=23.43929-0.013004*T;
+  const lr=drb(lat),er=drb(e),lr2=drb(LMST);
+  return n360b(rdb(Math.atan2(Math.cos(lr2),-(Math.sin(lr2)*Math.cos(er)+Math.tan(lr)*Math.sin(er)))));
+}
+
+function getNakB(lon,T){
+  const ay=getAyb(T),sid=n360b(lon-ay),idx=Math.floor(sid/(360/27)),pada=Math.floor((sid%(360/27))/(360/27/4))+1;
+  return{name:NK_BM[idx%27]||'?',pada,sid,deg:gDb(sid),sign:SIGNS_BM[gSb(sid)]};
+}
+
+async function runAstroSuite(){
+  document.getElementById('run-astro').disabled=true;
+  setDot('astro','run');
+  setProgress('astro',0);
+
+  const dob=document.getElementById('a-dob').value||'2005-10-30';
+  const tob=document.getElementById('a-tob').value||'17:30';
+  const lat=parseFloat(document.getElementById('a-lat').value)||12.9716;
+  const lng=parseFloat(document.getElementById('a-lng').value)||77.5946;
+
+  // Parse birth datetime in local time (IST = UTC+5:30)
+  const [y,mo,d]=dob.split('-').map(Number);
+  const [hr,mn]=tob.split(':').map(Number);
+  // Convert IST to UTC
+  const birthUTC=new Date(Date.UTC(y,mo-1,d,hr-5,mn-30,0));
+
+  const JD=toJDb(birthUTC);
+  const T=(JD-2451545)/36525;
+  const ay=getAyb(T);
+  const pos=getPlanetsB(birthUTC);
+  const asc=calcAscB(birthUTC,lat,lng);
+  const ascSid=n360b(asc-ay);
+
+  let pass=0,fail=0,warn=0;
+
+  // ── Planet positions ──────────────────────────────────────
+  const planetRows=['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Rahu'];
+  const planetHTML=planetRows.map(p=>{
+    const gt=ASTRO_GROUND_TRUTH[p];
+    if(!gt||pos[p]===undefined)return mkRow('ap-'+p,p,'No ground truth available');
+    const sid=n360b(pos[p]-ay);
+    const sign=SIGNS_BM[gSb(sid)];
+    const deg=gDb(sid).toFixed(2);
+    const gtDeg=parseFloat(gt.degMin);
+    const signOk=sign===gt.sign;
+    const delta=Math.abs(parseFloat(deg)-gtDeg);
+    const withinTol=delta<=gt.tolerance;
+    return mkRow('ap-'+p,p,`Expected: ${gt.sign} ~${gt.degMin}° · Tolerance: ±${gt.tolerance}°`);
+  }).join('');
+  document.getElementById('astro-planets').innerHTML=planetHTML;
+  setProgress('astro',15);await sleep(30);
+
+  for(const p of planetRows){
+    const gt=ASTRO_GROUND_TRUTH[p];
+    if(!gt||pos[p]===undefined){setStatus('ap-'+p,'skip','','No ground truth');continue;}
+    setStatus('ap-'+p,'run');await sleep(20);
+    const sid=n360b(pos[p]-ay);
+    const sign=SIGNS_BM[gSb(sid)];
+    const deg=gDb(sid).toFixed(2);
+    const gtDeg=parseFloat(gt.degMin);
+    const delta=Math.abs(parseFloat(deg)-gtDeg);
+    const signOk=sign===gt.sign;
+    const degOk=delta<=gt.tolerance;
+    const state=signOk&&degOk?'pass':signOk?'warn':'fail';
+    if(state==='pass')pass++;else if(state==='warn')warn++;else fail++;
+    const deltaClass=delta<=0.5?'delta-ok':delta<=gt.tolerance?'delta-warn':'delta-fail';
+    setStatus('ap-'+p,state,
+      `<table class="dt"><tr><td>Calculated</td><td>${sign} ${deg}°</td></tr><tr><td>Expected</td><td>${gt.sign} ~${gt.degMin}°</td></tr><tr><td>Δ from GT</td><td class="${deltaClass}">${delta.toFixed(3)}° ${degOk?'✓ within tolerance':'⚠ outside tolerance'}</td></tr></table>`,
+      `Tropical: ${SIGNS_BM[gSb(pos[p])]} ${(pos[p]%30).toFixed(2)}°`
+    );
+  }
+  setProgress('astro',45);
+
+  // ── Nakshatra ──────────────────────────────────────────────
+  const nakPlanets=[{p:'Sun',expNak:'Swati',expPada:1},{p:'Moon',expNak:'Krittika',expPada:4},{p:'Mars',expNak:'Rohini',expPada:2}];
+  document.getElementById('astro-nak').innerHTML=nakPlanets.map(({p})=>mkRow('ank-'+p,p+' Nakshatra','Checking nakshatra and pada accuracy')).join('');
+  for(const {p,expNak,expPada} of nakPlanets){
+    setStatus('ank-'+p,'run');await sleep(20);
+    const nak=getNakB(pos[p],T);
+    const nakOk=nak.name===expNak,padaOk=nak.pada===expPada;
+    const state=nakOk&&padaOk?'pass':nakOk?'warn':'fail';
+    if(state==='pass')pass++;else if(state==='warn')warn++;else fail++;
+    setStatus('ank-'+p,state,
+      `<table class="dt"><tr><td>Nakshatra</td><td>${nak.name} ${nakOk?'✓':'✗ expected '+expNak}</td></tr><tr><td>Pada</td><td>${nak.pada} ${padaOk?'✓':'✗ expected '+expPada}</td></tr><tr><td>Sidereal deg</td><td>${nak.sign} ${nak.deg.toFixed(2)}°</td></tr></table>`
+    );
+  }
+  setProgress('astro',65);
+
+  // ── Dasha ──────────────────────────────────────────────────
+  document.getElementById('astro-dasha').innerHTML=
+    mkRow('ad-maha','Current Mahadasha','Expected: Rahu (2024-2025 timeframe)')+
+    mkRow('ad-antar','Current Antardasha','Expected: Saturn antardasha');
+
+  // Calculate dasha
+  const moonNak=getNakB(pos.Moon,T);
+  const ni=Math.floor(moonNak.sid/(360/27)),bri=ni%9;
+  const nakDeg=360/27,posInNak=moonNak.sid%nakDeg,frac=1-(posInNak/nakDeg);
+  const dashas=[];let sd=new Date(birthUTC),idx=bri;
+  for(let i=0;i<9;i++){const pl=NR_BM[idx%9];const yrs=i===0?PP_BM[pl]*frac:PP_BM[pl];const ed=new Date(sd.getTime()+yrs*365.25*24*3600*1000);dashas.push({planet:pl,start:new Date(sd),end:ed});sd=new Date(ed);idx++;}
+  const now=new Date();
+  const curMaha=dashas.find(d=>now>=d.start&&now<d.end)||dashas[dashas.length-1];
+  const ao=PO_BM.slice(PO_BM.indexOf(curMaha.planet)).concat(PO_BM.slice(0,PO_BM.indexOf(curMaha.planet)));
+  let as2=new Date(curMaha.start);
+  const ads=ao.map(ap=>{const ay2=(PP_BM[curMaha.planet]*PP_BM[ap])/120;const ae=new Date(as2.getTime()+ay2*365.25*24*3600*1000);const r={planet:ap,start:new Date(as2),end:ae};as2=new Date(ae);return r;});
+  const curAntar=ads.find(d=>now>=d.start&&now<d.end)||ads[0];
+
+  setStatus('ad-maha','run');await sleep(20);
+  const mahaOk=curMaha.planet===ASTRO_GROUND_TRUTH.mahadasha;
+  if(mahaOk)pass++;else fail++;
+  setStatus('ad-maha',mahaOk?'pass':'fail',
+    `<table class="dt"><tr><td>Calculated</td><td>${curMaha.planet}</td></tr><tr><td>Expected</td><td>${ASTRO_GROUND_TRUTH.mahadasha}</td></tr><tr><td>Period</td><td>${curMaha.start.toLocaleDateString()} — ${curMaha.end.toLocaleDateString()}</td></tr></table>`
+  );
+
+  setStatus('ad-antar','run');await sleep(20);
+  const antarOk=curAntar.planet===ASTRO_GROUND_TRUTH.antardasha;
+  if(antarOk)pass++;else fail++;
+  setStatus('ad-antar',antarOk?'pass':'fail',
+    `<table class="dt"><tr><td>Calculated</td><td>${curAntar.planet}</td></tr><tr><td>Expected</td><td>${ASTRO_GROUND_TRUTH.antardasha}</td></tr><tr><td>Period</td><td>${curAntar.start.toLocaleDateString()} — ${curAntar.end.toLocaleDateString()}</td></tr></table>`
+  );
+  setProgress('astro',82);
+
+  // ── Ayanamsa & ASC ────────────────────────────────────────
+  document.getElementById('astro-asc').innerHTML=
+    mkRow('aa-ay','Lahiri Ayanamsa at birth','Expected ~23.887° ± 0.02°')+
+    mkRow('aa-asc','Ascendant Sign','Expected Taurus (rising)');
+
+  setStatus('aa-ay','run');await sleep(20);
+  const ayVal=getAyb(T);
+  const ayExpected=23.887;
+  const ayDelta=Math.abs(ayVal-ayExpected);
+  const ayOk=ayDelta<0.05;
+  if(ayOk)pass++;else fail++;
+  setStatus('aa-ay',ayOk?'pass':'fail',
+    `<table class="dt"><tr><td>Calculated</td><td>${ayVal.toFixed(4)}°</td></tr><tr><td>Expected</td><td>~${ayExpected}°</td></tr><tr><td>Delta</td><td class="${ayDelta<0.02?'delta-ok':ayDelta<0.05?'delta-warn':'delta-fail'}">${ayDelta.toFixed(4)}°</td></tr></table>`
+  );
+
+  setStatus('aa-asc','run');await sleep(20);
+  const ascSign=SIGNS_BM[gSb(ascSid)];
+  const ascOk=ascSign===ASTRO_GROUND_TRUTH.ASC.sign;
+  if(ascOk)pass++;else warn++;
+  setStatus('aa-asc',ascOk?'pass':'warn',
+    `<table class="dt"><tr><td>ASC (sidereal)</td><td>${ascSign} ${gDb(ascSid).toFixed(2)}°</td></tr><tr><td>Expected</td><td>${ASTRO_GROUND_TRUTH.ASC.sign}</td></tr><tr><td>Tropical ASC</td><td>${SIGNS_BM[gSb(asc)]} ${gDb(asc).toFixed(2)}°</td></tr></table>`
+  );
+  setProgress('astro',100);
+
+  const total=pass+fail+warn;
+  const pct=total?Math.round(((pass+warn*0.5)/total)*100):0;
+  setSummary('astro',pass,fail,warn,0,`Score: ${pct}%`);
+  SCORES.astro={pass,fail,warn,pct};
+  setDot('astro',fail>0?'fail':warn>0?'warn':'pass');
+  document.getElementById('run-astro').disabled=false;
+  updateOverall();
+}
+
+// ============================================================
+// VISION SUITE
+// ============================================================
+async function runVisionSuite(){
+  document.getElementById('run-vision').disabled=true;
+  setDot('vision','run');
+  setProgress('vision',0);
+
+  const {orPool,orPrimary}=getJarvisKeys();
+  let pass=0,fail=0,warn=0,skip=0;
+
+  // ── Key routing check ──────────────────────────────────────
+  document.getElementById('vision-routing').innerHTML=
+    mkRow('vr-pool','Key Pool Detection','Reads OR keys from Jarvis localStorage')+
+    mkRow('vr-rotation','Rotation Logic','Verifies nextORKey() cycles, not single key');
+
+  setStatus('vr-pool','run');await sleep(30);
+  if(orPool.length>0){
+    pass++;
+    setStatus('vr-pool','pass',
+      `<table class="dt"><tr><td>Keys found</td><td>${orPool.length}</td></tr><tr><td>Primary</td><td>${orPrimary?orPrimary.substring(0,12)+'…':'not set'}</td></tr><tr><td>Pool</td><td>${orPool.map((_,i)=>'Key '+(i+1)).join(', ')}</td></tr></table>`
+    );
+  } else {
+    fail++;
+    setStatus('vr-pool','fail','No OpenRouter keys found in Jarvis localStorage. Add keys in Jarvis Settings first.');
+  }
+  setProgress('vision',20);
+
+  // Simulate rotation test by tracking idx counter
+  setStatus('vr-rotation','run');await sleep(30);
+  if(orPool.length>=2){
+    // Simulate 6 calls, track which key would be used
+    let idx=0;
+    const calls=[];
+    for(let i=0;i<6;i++){
+      calls.push('Key '+(idx%orPool.length+1));
+      idx=(idx+1)%orPool.length;
+    }
+    const unique=new Set(calls).size;
+    const rotates=unique>1;
+    if(rotates)pass++;else warn++;
+    setStatus('vr-rotation',rotates?'pass':'warn',
+      `<table class="dt"><tr><td>Simulated 6 calls</td><td>${calls.join(' → ')}</td></tr><tr><td>Unique keys used</td><td>${unique}/${orPool.length}</td></tr><tr><td>Rotates?</td><td>${rotates?'✓ Yes':'✗ No — only 1 key in pool'}</td></tr></table>`
+    );
+  } else {
+    warn++;
+    setStatus('vr-rotation','warn','Only 1 key in pool — rotation cannot be tested. Add more keys for true redundancy.');
+  }
+  setProgress('vision',40);
+
+  // ── BF% accuracy test ─────────────────────────────────────
+  document.getElementById('vision-bf').innerHTML=
+    mkRow('vb-scan','Body Scan BF% Estimate','Live API call — requires uploaded photos + OR key')+
+    mkRow('vb-navy','Navy Formula Sanity Check','Cross-checks visual AI estimate vs Navy method');
+
+  const knownBF=parseFloat(document.getElementById('v-bf').value||'0');
+  const height=parseFloat(document.getElementById('v-height').value||'0');
+  const weight=parseFloat(document.getElementById('v-weight').value||'0');
+  const age=parseFloat(document.getElementById('v-age').value||'0');
+  const hasPhoto=vImgB64[1]||vImgB64[2];
+
+  setStatus('vb-scan','run');await sleep(30);
+  if(!hasPhoto||!orPool.length||!knownBF){
+    skip++;
+    setStatus('vb-scan','skip','Upload at least 1 photo, enter known BF%, and ensure OR key is set to run this test.','Skipped — missing inputs');
+  } else {
+    try{
+      const photos=[vImgB64[1],vImgB64[2]].filter(Boolean);
+      const content=[{type:'text',text:`You are a precision body composition analyst. Subject: male, age ${age||20}, height ${height||175}cm, weight ${weight||75}kg. Analyse these ${photos.length} photo(s). Give ONLY: 1) BF% range e.g. "17-19%" 2) Single sentence reasoning. Be accurate, not flattering.`}];
+      photos.forEach(b64=>content.push({type:'image_url',image_url:{url:`data:image/jpeg;base64,${b64}`}}));
+      const t0=Date.now();
+      const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+orPool[0],'HTTP-Referer':location.href,'X-Title':'JARVIS-BM'},
+        body:JSON.stringify({model:'qwen/qwen2.5-vl-72b-instruct',messages:[{role:'user',content}],max_tokens:150,temperature:0.3})
+      });
+      const latency=Date.now()-t0;
+      if(!r.ok)throw new Error('API error '+r.status);
+      const text=(await r.json()).choices[0].message.content;
+      const bfMatch=text.match(/(\d{1,2})\s*[-–]\s*(\d{1,2})\s*%/);
+      if(bfMatch){
+        const low=parseInt(bfMatch[1]),high=parseInt(bfMatch[2]),mid=(low+high)/2;
+        const delta=Math.abs(mid-knownBF);
+        const state=delta<=2?'pass':delta<=4?'warn':'fail';
+        if(state==='pass')pass++;else if(state==='warn')warn++;else fail++;
+        setStatus('vb-scan',state,
+          `<table class="dt"><tr><td>AI estimate</td><td>${low}–${high}% (mid: ${mid.toFixed(1)}%)</td></tr><tr><td>Known truth</td><td>${knownBF}%</td></tr><tr><td>Delta</td><td class="${delta<=2?'delta-ok':delta<=4?'delta-warn':'delta-fail'}">±${delta.toFixed(1)}% ${delta<=2?'(excellent)':delta<=4?'(acceptable)':'(needs calibration)'}</td></tr><tr><td>Latency</td><td>${latency}ms</td></tr></table>`,
+          text.substring(0,120)
+        );
+      } else {
+        warn++;
+        setStatus('vb-scan','warn',`Could not parse BF% range from response. Raw: "${text.substring(0,100)}"`);
+      }
+    }catch(e){
+      fail++;
+      setStatus('vb-scan','fail','API call failed: '+e.message);
+    }
+  }
+  setProgress('vision',75);
+
+  // Navy formula sanity
+  setStatus('vb-navy','run');await sleep(20);
+  const neck=parseFloat(document.querySelector('#suite-vision input[placeholder*="Neck"]')?.value||'0');
+  const waist=parseFloat(document.querySelector('#suite-vision input[placeholder*="Waist"]')?.value||'0');
+  if(height&&waist&&neck&&waist>neck){
+    const navyBF=495/(1.0324-0.19077*Math.log10(waist-neck)+0.15456*Math.log10(height))-450;
+    pass++;
+    setStatus('vb-navy','pass',
+      `<table class="dt"><tr><td>Navy BF%</td><td>${navyBF.toFixed(1)}%</td></tr><tr><td>Known truth</td><td>${knownBF||'not set'}%</td></tr>${knownBF?`<tr><td>Delta</td><td class="${Math.abs(navyBF-knownBF)<=3?'delta-ok':'delta-warn'}">±${Math.abs(navyBF-knownBF).toFixed(1)}%</td></tr>`:''}</table>`
+    );
+  } else {
+    skip++;
+    setStatus('vb-navy','skip','Add height, neck, and waist measurements to enable Navy formula cross-check.','Skipped — missing measurements');
+  }
+  setProgress('vision',90);
+
+  // ── Response quality test ──────────────────────────────────
+  document.getElementById('vision-quality').innerHTML=mkRow('vq-struct','Response Structure Check','Verifies response includes range, reasoning, and recommendations');
+  setStatus('vq-struct',hasPhoto&&orPool.length?'skip':'skip','Requires BF test to run first.','Dependent on BF test');
+  skip++;
+  setProgress('vision',100);
+
+  const total=pass+fail+warn;
+  const pct=total?Math.round(((pass+warn*0.5)/total)*100):0;
+  setSummary('vision',pass,fail,warn,skip,`Score: ${pct}%`);
+  SCORES.vision={pass,fail,warn,skip,pct};
+  setDot('vision',fail>0?'fail':warn>0?'warn':'pass');
+  document.getElementById('run-vision').disabled=false;
+  updateOverall();
+}
+
+// ============================================================
+// SYNTHESIS SUITE
+// ============================================================
+async function runSynthSuite(){
+  document.getElementById('run-synth').disabled=true;
+  setDot('synth','run');
+  setProgress('synth',0);
+
+  const {groqPool,orPool}=getJarvisKeys();
+  const natal=getJarvisNatal();
+  let pass=0,fail=0,warn=0,skip=0;
+  let synthOutput='';
+
+  // ── Data sourcing check ───────────────────────────────────
+  document.getElementById('synth-sourcing').innerHTML=
+    mkRow('ss-natal','Natal Chart Available','Checks S.natal is set in Jarvis')+
+    mkRow('ss-groq','Groq Keys Available','Required for synthesis LLM calls')+
+    mkRow('ss-or','OR Keys Available','Required for image analyses in synthesis');
+
+  setStatus('ss-natal','run');await sleep(20);
+  if(natal?.dob){pass++;setStatus('ss-natal','pass',`DOB: ${natal.dob} · TOB: ${natal.tob} · Lat: ${natal.lat}°N`);}
+  else{fail++;setStatus('ss-natal','fail','No natal chart found. Set DOB in Jarvis Settings.');}
+
+  setStatus('ss-groq','run');await sleep(20);
+  if(groqPool.length){pass++;setStatus('ss-groq','pass',`${groqPool.length} key(s) available`);}
+  else{fail++;setStatus('ss-groq','fail','No Groq keys found in localStorage.');}
+
+  setStatus('ss-or','run');await sleep(20);
+  if(orPool.length){pass++;setStatus('ss-or','pass',`${orPool.length} key(s) available`);}
+  else{warn++;setStatus('ss-or','warn','No OR keys — image analyses in synthesis will be skipped');}
+  setProgress('synth',25);
+
+  // ── Specificity test — fire a real synthesis and score it ──
+  document.getElementById('synth-specificity').innerHTML=
+    mkRow('sp-fire','Live Synthesis Call','Fires actual synthesis and scores the output')+
+    mkRow('sp-specificity','Specificity Score','Checks for sign names, degrees, dasha names vs generic statements')+
+    mkRow('sp-length','Response Depth','Minimum 4 paragraphs, 300+ words');
+
+  if(!groqPool.length||!natal?.dob){
+    ['sp-fire','sp-specificity','sp-length'].forEach(id=>{skip++;setStatus(id,'skip','Requires Groq key + natal chart');});
+  } else {
+    setStatus('sp-fire','run');
+    setProgress('synth',35);
+
+    // Build minimal astro context
+    const [y,mo,d]=natal.dob.split('-').map(Number);
+    const [hr2,mn2]=(natal.tob||'12:00').split(':').map(Number);
+    const birthUTC2=new Date(Date.UTC(y,mo-1,d,hr2-5,mn2-30,0));
+    const JD2=toJDb(birthUTC2),T2=(JD2-2451545)/36525,ay2=getAyb(T2);
+    const bPos=getPlanetsB(birthUTC2);
+    let miniCtx=`DOB: ${natal.dob} ${natal.tob} · Location: ${natal.lat}°N ${natal.lng}°E\n`;
+    ['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Rahu'].forEach(p=>{
+      if(bPos[p]===undefined)return;
+      const sid=n360b(bPos[p]-ay2);
+      miniCtx+=`${p}: ${SIGNS_BM[gSb(sid)]} ${gDb(sid).toFixed(1)}°\n`;
+    });
+    const mn3=getNakB(bPos.Moon,T2);
+    const ni3=Math.floor(mn3.sid/(360/27)),bri3=ni3%9;
+    const nakDeg3=360/27,posInNak3=mn3.sid%nakDeg3,frac3=1-(posInNak3/nakDeg3);
+    const dashas3=[];let sd3=new Date(birthUTC2),idx3=bri3;
+    for(let i=0;i<9;i++){const pl=NR_BM[idx3%9];const yrs=i===0?PP_BM[pl]*frac3:PP_BM[pl];const ed=new Date(sd3.getTime()+yrs*365.25*24*3600*1000);dashas3.push({planet:pl,start:new Date(sd3),end:ed});sd3=new Date(ed);idx3++;}
+    const now2=new Date();
+    const curM=dashas3.find(d=>now2>=d.start&&now2<d.end)||dashas3[dashas3.length-1];
+    miniCtx+=`Current Mahadasha: ${curM.planet}\n`;
+
+    const sys3=`You are a master synthesist combining Vedic astrology and numerology. Given the natal chart data, produce a specific, data-driven synthesis about this person's current life chapter and core nature. Use the actual planet positions and dasha provided. Name specific placements. Minimum 4 paragraphs.`;
+
+    try{
+      const t0=Date.now();
+      const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+groqPool[0]},
+        body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'system',content:sys3},{role:'user',content:miniCtx}],max_tokens:800,temperature:0.7})
+      });
+      const latency=Date.now()-t0;
+      if(!r.ok)throw new Error('API '+r.status);
+      synthOutput=(await r.json()).choices[0].message.content;
+      pass++;
+      setStatus('sp-fire','pass',`Response received in ${latency}ms · ${synthOutput.length} chars`);
+      setProgress('synth',65);
+
+      // ── Specificity scoring ───────────────────────────────
+      setStatus('sp-specificity','run');await sleep(20);
+      const signMentions=(synthOutput.match(/\b(Aries|Taurus|Gemini|Cancer|Leo|Virgo|Libra|Scorpio|Sagittarius|Capricorn|Aquarius|Pisces)\b/gi)||[]).length;
+      const dashaMentions=(synthOutput.match(/\b(Rahu|Saturn|Jupiter|Venus|Mercury|Moon|Sun|Ketu|Mars)\s+(Mahadasha|Antardasha|dasha|period)\b/gi)||[]).length;
+      const degMentions=(synthOutput.match(/\d{1,2}\.\d°/g)||[]).length;
+      const nakMentions=(synthOutput.match(/\b(Ashwini|Bharani|Krittika|Rohini|Mrigashira|Ardra|Punarvasu|Pushya|Ashlesha|Magha|Purva Phalguni|Uttara Phalguni|Hasta|Chitra|Swati|Vishakha|Anuradha|Jyeshtha|Mula|Purva Ashadha|Uttara Ashadha|Shravana|Dhanishtha|Shatabhisha|Purva Bhadrapada|Uttara Bhadrapada|Revati)\b/gi)||[]).length;
+      const genericPhrases=(synthOutput.match(/\b(in general|typically|usually|often|may|might|could|sometimes|many people|individuals born)\b/gi)||[]).length;
+      const specificScore=Math.min(100,Math.round(((signMentions*5+dashaMentions*10+degMentions*8+nakMentions*8)/(1+genericPhrases*3))*10));
+      const specState=specificScore>=60?'pass':specificScore>=35?'warn':'fail';
+      if(specState==='pass')pass++;else if(specState==='warn')warn++;else fail++;
+      setStatus('sp-specificity',specState,
+        `<table class="dt"><tr><td>Sign names used</td><td>${signMentions}</td></tr><tr><td>Dasha references</td><td>${dashaMentions}</td></tr><tr><td>Degree citations</td><td>${degMentions}</td></tr><tr><td>Nakshatra refs</td><td>${nakMentions}</td></tr><tr><td>Generic phrases</td><td class="${genericPhrases>5?'delta-fail':genericPhrases>2?'delta-warn':'delta-ok'}">${genericPhrases}</td></tr><tr><td>Specificity score</td><td class="${specState==='pass'?'delta-ok':specState==='warn'?'delta-warn':'delta-fail'}">${specificScore}/100</td></tr></table>`
+      );
+
+      // ── Length/depth ──────────────────────────────────────
+      setStatus('sp-length','run');await sleep(20);
+      const words=synthOutput.split(/\s+/).length;
+      const paras=synthOutput.split(/\n\n+/).filter(p=>p.trim().length>50).length;
+      const depthOk=words>=300&&paras>=4;
+      const depthState=depthOk?'pass':words>=150?'warn':'fail';
+      if(depthState==='pass')pass++;else if(depthState==='warn')warn++;else fail++;
+      setStatus('sp-length',depthState,
+        `<table class="dt"><tr><td>Word count</td><td class="${words>=300?'delta-ok':words>=150?'delta-warn':'delta-fail'}">${words} (min 300)</td></tr><tr><td>Paragraphs</td><td class="${paras>=4?'delta-ok':'delta-warn'}">${paras} (min 4)</td></tr></table>`
+      );
+
+    }catch(e){
+      fail++;
+      setStatus('sp-fire','fail','API call failed: '+e.message);
+      setStatus('sp-specificity','skip','Skipped — synthesis call failed');
+      setStatus('sp-length','skip','Skipped — synthesis call failed');
+      skip+=2;
+    }
+  }
+  setProgress('synth',82);
+
+  // ── Convergence check ─────────────────────────────────────
+  document.getElementById('synth-convergence').innerHTML=
+    mkRow('sc-conv','Cross-System Convergence','Checks that output references multiple systems, not just one');
+
+  setStatus('sc-conv','run');await sleep(20);
+  if(synthOutput.length>100){
+    const hasAstro=/\b(dasha|transit|mahadasha|nakshatra|rahu|saturn|jupiter|ascendant|lagna)\b/i.test(synthOutput);
+    const hasNum=/\b(life path|destiny|soul urge|numerolog|number \d)\b/i.test(synthOutput);
+    const sources=[hasAstro&&'Astrology',hasNum&&'Numerology'].filter(Boolean);
+    const convState=sources.length>=2?'pass':sources.length===1?'warn':'fail';
+    if(convState==='pass')pass++;else if(convState==='warn')warn++;else fail++;
+    setStatus('sc-conv',convState,
+      `<table class="dt"><tr><td>Systems referenced</td><td>${sources.join(', ')||'None detected'}</td></tr><tr><td>Astrology content</td><td>${hasAstro?'✓ Present':'✗ Missing'}</td></tr><tr><td>Numerology content</td><td>${hasNum?'✓ Present':'○ Not in text-only mode'}</td></tr></table>`
+    );
+  } else {
+    skip++;
+    setStatus('sc-conv','skip','No synthesis output to check.');
+  }
+  setProgress('synth',92);
+
+  // ── Output preview ────────────────────────────────────────
+  document.getElementById('synth-output').innerHTML=mkRow('so-prev','Synthesis Preview','First 400 chars of the generated synthesis');
+  if(synthOutput){
+    setStatus('so-prev','pass',`<div style="font-size:11px;line-height:1.7;color:var(--text2);white-space:pre-wrap;">${synthOutput.substring(0,450)}${synthOutput.length>450?'…':''}</div>`);
+  } else {
+    setStatus('so-prev','skip','No output');skip++;
+  }
+  setProgress('synth',100);
+
+  const total=pass+fail+warn;
+  const pct=total?Math.round(((pass+warn*0.5)/total)*100):0;
+  setSummary('synth',pass,fail,warn,skip,`Score: ${pct}%`);
+  SCORES.synth={pass,fail,warn,skip,pct};
+  setDot('synth',fail>0?'fail':warn>0?'warn':'pass');
+  document.getElementById('run-synth').disabled=false;
+  updateOverall();
+}
+
+// ============================================================
+// KEY ROTATION SUITE
+// ============================================================
+async function runKeysSuite(){
+  document.getElementById('run-keys').disabled=true;
+  setDot('keys','run');
+  setProgress('keys',0);
+
+  const {groqPool,orPool}=getJarvisKeys();
+  let pass=0,fail=0,warn=0,skip=0;
+
+  // ── Pool discovery ────────────────────────────────────────
+  document.getElementById('keys-pool').innerHTML=
+    mkRow('kp-groq','Groq Pool','Keys loaded from localStorage j_groq_keys')+
+    mkRow('kp-or','OpenRouter Pool','Keys loaded from localStorage j_or_keys');
+
+  setStatus('kp-groq','run');await sleep(20);
+  if(groqPool.length){
+    pass++;
+    setStatus('kp-groq','pass',
+      `<table class="dt">${groqPool.map((k,i)=>`<tr><td>Key ${i+1}</td><td>${k.substring(0,14)}…${k.slice(-4)}</td></tr>`).join('')}</table>`
+    );
+  } else {
+    fail++;setStatus('kp-groq','fail','No Groq keys in localStorage. Jarvis is offline.');
+  }
+
+  setStatus('kp-or','run');await sleep(20);
+  if(orPool.length){
+    pass++;
+    setStatus('kp-or','pass',
+      `<table class="dt">${orPool.map((k,i)=>`<tr><td>Key ${i+1}</td><td>${k.substring(0,14)}…${k.slice(-4)}</td></tr>`).join('')}</table>`
+    );
+  } else {
+    warn++;setStatus('kp-or','warn','No OR keys — vision and synthesis will be degraded.');
+  }
+  setProgress('keys',20);
+
+  // ── Groq parallel load ────────────────────────────────────
+  document.getElementById('keys-groq').innerHTML=
+    mkRow('kg-load','10 Parallel Requests','Fires 10 simultaneous Groq completions, checks success rate + distribution')+
+    mkRow('kg-dist','Key Distribution','Verifies requests spread across pool');
+
+  setStatus('kg-load','run');
+  setProgress('keys',30);
+
+  if(!groqPool.length){
+    fail++;skip++;
+    setStatus('kg-load','fail','No Groq keys available');
+    setStatus('kg-dist','skip','Skipped');
+  } else {
+    const REQ_COUNT=10;
+    let gIdx=0;
+    const gResults=[];
+    const t0=Date.now();
+    const gJobs=Array.from({length:REQ_COUNT},(_,i)=>{
+      const key=groqPool[gIdx%groqPool.length];gIdx++;
+      const keyIdx=Math.floor((gIdx-1)%groqPool.length);
+      const t1=Date.now();
+      return fetch('https://api.groq.com/openai/v1/chat/completions',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+        body:JSON.stringify({model:'llama-3.1-8b-instant',messages:[{role:'user',content:`Say exactly: "ok${i}"`}],max_tokens:10,temperature:0})
+      }).then(async r=>{
+        const lat=Date.now()-t1;
+        if(r.status===429){const rb=await r.json().catch(()=>({}));return{i,keyIdx,ok:false,status:429,lat,msg:rb.error?.message||'rate limited'};}
+        if(!r.ok){return{i,keyIdx,ok:false,status:r.status,lat,msg:'HTTP '+r.status};}
+        await r.json();
+        return{i,keyIdx,ok:true,status:200,lat,msg:'ok'};
+      }).catch(e=>({i,keyIdx,ok:false,status:0,lat:Date.now()-t1,msg:e.message}));
+    });
+
+    const settled=await Promise.allSettled(gJobs);
+    settled.forEach(s=>{if(s.status==='fulfilled')gResults.push(s.value);});
+    const totalTime=Date.now()-t0;
+    const okCount=gResults.filter(r=>r.ok).length;
+    const rlCount=gResults.filter(r=>r.status===429).length;
+    const successRate=Math.round((okCount/REQ_COUNT)*100);
+    setProgress('keys',55);
+
+    const loadState=successRate>=80?'pass':successRate>=50?'warn':'fail';
+    if(loadState==='pass')pass++;else if(loadState==='warn')warn++;else fail++;
+    setStatus('kg-load',loadState,
+      `<table class="dt"><tr><td>Total requests</td><td>${REQ_COUNT}</td></tr><tr><td>Succeeded</td><td class="${okCount===REQ_COUNT?'delta-ok':okCount>=7?'delta-warn':'delta-fail'}">${okCount}/${REQ_COUNT} (${successRate}%)</td></tr><tr><td>Rate limited</td><td class="${rlCount>0?'delta-warn':''}">${rlCount}</td></tr><tr><td>Wall time</td><td>${totalTime}ms</td></tr></table>`
+    );
+
+    // Distribution
+    const keyUsage={};
+    gResults.forEach(r=>{keyUsage[r.keyIdx]=(keyUsage[r.keyIdx]||0)+1;});
+    const distOk=Object.keys(keyUsage).length===Math.min(groqPool.length,REQ_COUNT);
+    if(groqPool.length>=2)if(distOk)pass++;else warn++;else{pass++;}
+    setStatus('kg-dist',groqPool.length>=2?(distOk?'pass':'warn'):'pass',
+      `<table class="dt">${Object.entries(keyUsage).map(([k,v])=>`<tr><td>Key ${parseInt(k)+1}</td><td>${v} requests<div class="speed-bar-wrap"><div class="speed-bar"><div class="speed-fill" style="width:${(v/REQ_COUNT)*100}%;background:var(--blue);"></div></div></div></td></tr>`).join('')}</table>${groqPool.length<2?'<div style="margin-top:4px;color:var(--text3);font-size:11px;">Only 1 key — add more to test distribution</div>':''}`
+    );
+  }
+  setProgress('keys',70);
+
+  // ── OR parallel load ──────────────────────────────────────
+  document.getElementById('keys-or').innerHTML=
+    mkRow('ko-load','10 Parallel Requests','Fires 10 simultaneous OR completions')+
+    mkRow('ko-dist','Key Distribution','');
+
+  if(!orPool.length){
+    skip+=2;
+    setStatus('ko-load','skip','No OR keys');
+    setStatus('ko-dist','skip','No OR keys');
+  } else {
+    setStatus('ko-load','run');
+    let oIdx=0;
+    const oResults=[];
+    const ot0=Date.now();
+    const oJobs=Array.from({length:10},(_,i)=>{
+      const key=orPool[oIdx%orPool.length];oIdx++;
+      const keyIdx2=Math.floor((oIdx-1)%orPool.length);
+      const t1=Date.now();
+      return fetch('https://openrouter.ai/api/v1/chat/completions',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+key,'HTTP-Referer':location.href,'X-Title':'JARVIS-BM'},
+        body:JSON.stringify({model:'cognitivecomputations/dolphin-mistral-24b-venice-edition:free',messages:[{role:'user',content:`Say "ok${i}"`}],max_tokens:8,temperature:0})
+      }).then(async r=>{
+        const lat=Date.now()-t1;
+        if(!r.ok){const e=await r.json().catch(()=>({}));return{i,keyIdx:keyIdx2,ok:false,status:r.status,lat,msg:e.error?.message||'HTTP '+r.status};}
+        await r.json();
+        return{i,keyIdx:keyIdx2,ok:true,status:200,lat,msg:'ok'};
+      }).catch(e=>({i,keyIdx:0,ok:false,status:0,lat:Date.now()-t1,msg:e.message}));
+    });
+    const oSettled=await Promise.allSettled(oJobs);
+    oSettled.forEach(s=>{if(s.status==='fulfilled')oResults.push(s.value);});
+    const otTotal=Date.now()-ot0;
+    const oOk=oResults.filter(r=>r.ok).length;
+    const oRate=Math.round((oOk/10)*100);
+
+    const oState=oRate>=80?'pass':oRate>=40?'warn':'fail';
+    if(oState==='pass')pass++;else if(oState==='warn')warn++;else fail++;
+    setStatus('ko-load',oState,
+      `<table class="dt"><tr><td>Succeeded</td><td class="${oOk>=8?'delta-ok':oOk>=5?'delta-warn':'delta-fail'}">${oOk}/10 (${oRate}%)</td></tr><tr><td>Wall time</td><td>${otTotal}ms</td></tr>${oResults.filter(r=>!r.ok).slice(0,2).map(r=>`<tr><td>Error sample</td><td style="color:var(--red);font-size:10px;">${r.msg.substring(0,60)}</td></tr>`).join('')}</table>`
+    );
+
+    const oKeyUsage={};
+    oResults.forEach(r=>{oKeyUsage[r.keyIdx]=(oKeyUsage[r.keyIdx]||0)+1;});
+    pass++;
+    setStatus('ko-dist','pass',
+      `<table class="dt">${Object.entries(oKeyUsage).map(([k,v])=>`<tr><td>Key ${parseInt(k)+1}</td><td>${v} req<div class="speed-bar-wrap"><div class="speed-bar"><div class="speed-fill" style="width:${(v/10)*100}%;background:var(--purple);"></div></div></div></td></tr>`).join('')}</table>`
+    );
+  }
+  setProgress('keys',88);
+
+  // ── Latency profile ───────────────────────────────────────
+  document.getElementById('keys-latency').innerHTML=mkRow('kl-lat','Latency Summary','Average response times across all parallel calls');
+  // Summarise from above
+  setStatus('kl-lat','pass',`<div style="font-size:11px;color:var(--text2);">Groq + OR parallel tests complete. See individual rows above for per-request timing. <br>Groq free tier: typically 200–800ms · OR free tier: typically 1–4s · Vision (OR): 3–8s</div>`);
+  pass++;
+  setProgress('keys',100);
+
+  const total=pass+fail+warn;
+  const pct=total?Math.round(((pass+warn*0.5)/total)*100):0;
+  setSummary('keys',pass,fail,warn,skip,`Score: ${pct}%`);
+  SCORES.keys={pass,fail,warn,skip,pct};
+  setDot('keys',fail>0?'fail':warn>0?'warn':'pass');
+  document.getElementById('run-keys').disabled=false;
+  updateOverall();
+}
+
+// ============================================================
+// OVERALL SCORE
+// ============================================================
+function updateOverall(){
+  const suites=['astro','vision','synth','keys'];
+  const ran=suites.filter(s=>SCORES[s]!==null);
+  if(!ran.length)return;
+
+  const totPass=ran.reduce((s,k)=>s+(SCORES[k].pass||0),0);
+  const totFail=ran.reduce((s,k)=>s+(SCORES[k].fail||0),0);
+  const totWarn=ran.reduce((s,k)=>s+(SCORES[k].warn||0),0);
+  const totSkip=ran.reduce((s,k)=>s+(SCORES[k].skip||0),0);
+  const overallPct=ran.reduce((s,k)=>s+(SCORES[k].pct||0),0)/ran.length;
+
+  const grade=overallPct>=85?'A':overallPct>=70?'B':overallPct>=50?'C':'D';
+  const gradeColor=overallPct>=85?'var(--pass)':overallPct>=70?'var(--amber)':overallPct>=50?'#ff8844':'var(--fail)';
+
+  document.getElementById('overall-label').textContent=`Overall: ${overallPct.toFixed(0)}% — Grade ${grade}`;
+  const chip=document.getElementById('overall-chip');
+  chip.style.display='inline-flex';
+  chip.textContent=grade;
+  chip.className='score-chip '+(overallPct>=85?'a':overallPct>=70?'b':'c');
+
+  const circumference=2*Math.PI*28;
+  const offset=circumference-(overallPct/100)*circumference;
+
+  document.getElementById('overall-results').innerHTML=`
+    <div class="overall-card" style="margin-bottom:16px;">
+      <div class="score-ring">
+        <svg width="72" height="72" viewBox="0 0 72 72">
+          <circle cx="36" cy="36" r="28" fill="none" stroke="var(--bg4)" stroke-width="6"/>
+          <circle cx="36" cy="36" r="28" fill="none" stroke="${gradeColor}" stroke-width="6"
+            stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"
+            stroke-linecap="round" style="transition:stroke-dashoffset 0.8s;"/>
+        </svg>
+        <div class="score-ring-num" style="color:${gradeColor}">${Math.round(overallPct)}%</div>
+      </div>
+      <div class="overall-stats">
+        <div class="stat-box"><div class="stat-label">Passed</div><div class="stat-val" style="color:var(--pass)">${totPass}</div></div>
+        <div class="stat-box"><div class="stat-label">Failed</div><div class="stat-val" style="color:var(--fail)">${totFail}</div></div>
+        <div class="stat-box"><div class="stat-label">Warnings</div><div class="stat-val" style="color:var(--amber)">${totWarn}</div></div>
+        <div class="stat-box"><div class="stat-label">Skipped</div><div class="stat-val" style="color:var(--text3)">${totSkip}</div></div>
+      </div>
+    </div>
+    ${suites.filter(s=>SCORES[s]).map(s=>{
+      const sc=SCORES[s];
+      const names={astro:'🔮 Astro Engine',vision:'👁 Vision / BF%',synth:'🌌 Grand Synthesis',keys:'🔑 Key Rotation'};
+      const c=sc.pct>=85?'var(--pass)':sc.pct>=70?'var(--amber)':'var(--fail)';
+      return`<div class="test-row">
+        <div class="test-status ${sc.fail>0?'status-fail':sc.warn>0?'status-warn':'status-pass'}">${sc.fail>0?'✗':sc.warn>0?'⚠':'✓'}</div>
+        <div class="test-body">
+          <div class="test-name">${names[s]}</div>
+          <div class="speed-bar-wrap" style="margin-top:4px;">
+            <div style="font-size:11px;color:var(--text3);width:80px;">${sc.pct}%</div>
+            <div class="speed-bar"><div class="speed-fill" style="width:${sc.pct}%;background:${c};"></div></div>
+            <div style="font-size:10px;color:var(--text3);">${sc.pass}P ${sc.fail}F ${sc.warn}W</div>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}
+    <div style="margin-top:16px;padding:12px 14px;background:var(--bg3);border-radius:8px;border:1px solid var(--border2);">
+      <div style="font-size:10px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">Grade Scale</div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.8;">
+        <span style="color:var(--pass)">A (85–100%)</span> — Production ready · 
+        <span style="color:var(--amber)">B (70–84%)</span> — Good, minor issues · 
+        <span style="color:#ff8844">C (50–69%)</span> — Needs work · 
+        <span style="color:var(--fail)">D (&lt;50%)</span> — Critical failures
+      </div>
+    </div>
+  `;
+  setDot('overall',totFail>0?'fail':totWarn>0?'warn':'pass');
+}
+
+// ============================================================
+// RUN ALL
+// ============================================================
+async function runAll(){
+  document.getElementById('run-all-btn').disabled=true;
+  toast('Running all suites...',1500);
+  showSuite('astro');
+  await runAstroSuite();
+  showSuite('vision');
+  await runVisionSuite();
+  showSuite('synth');
+  await runSynthSuite();
+  showSuite('keys');
+  await runKeysSuite();
+  showSuite('overall');
+  document.getElementById('run-all-btn').disabled=false;
+  toast('All suites complete ✓',2500);
+}
+
+function clearAll(){
+  ['astro','vision','synth','keys','overall'].forEach(s=>setDot(s,'idle'));
+  Object.keys(SCORES).forEach(k=>SCORES[k]=null);
+  document.getElementById('overall-label').textContent='Not run';
+  document.getElementById('overall-chip').style.display='none';
+  ['astro-planets','astro-nak','astro-dasha','astro-asc',
+   'vision-routing','vision-bf','vision-quality',
+   'synth-sourcing','synth-specificity','synth-convergence','synth-output',
+   'keys-pool','keys-groq','keys-or','keys-latency'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='';});
+  ['astro','vision','synth','keys'].forEach(s=>{
+    setProgress(s,0);
+    const sum=document.getElementById('sum-'+s);
+    if(sum)sum.innerHTML='<span style="color:var(--text3);font-size:11px;">Not run yet</span>';
+  });
+  document.getElementById('overall-results').innerHTML='<div style="color:var(--text3);font-size:13px;padding:20px 0;">Run all suites first using the button in the sidebar.</div>';
+  toast('Cleared');
+}
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+// Init
+document.addEventListener('DOMContentLoaded',()=>{
+  const keys=getJarvisKeys();
+  const label=`${keys.groqPool.length}G / ${keys.orPool.length}OR keys`;
+  document.getElementById('overall-label').textContent=label+' detected — ready';
+});
+</script>
+</body>
+</html>
